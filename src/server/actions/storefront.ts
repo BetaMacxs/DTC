@@ -7,6 +7,7 @@ import {
   buildOrder,
   checkoutErrors,
   checkoutSchema,
+  productionCheckoutProblem,
   type CheckoutErrorCode,
   type CheckoutErrors,
 } from "@/lib/domain/checkout";
@@ -113,6 +114,13 @@ export async function placeOrderAction(raw: Record<string, unknown>): Promise<Pl
     return { ok: false, errors: {}, message: "failed" };
   }
   const { settings, catalog } = storefront;
+  if (backendKind() === "supabase" && isProduction() && !publicDemoMode()) {
+    const setupProblem = productionCheckoutProblem(settings);
+    if (setupProblem) {
+      console.error("[checkout] live store setup is incomplete:", setupProblem);
+      return { ok: false, errors: {}, message: "failed" };
+    }
+  }
   const quote = quoteCart(input.lines, catalog.products, settings, input.shippingMethodId);
   const errors = checkoutErrors(input, settings, quote);
   // In a live Supabase store, WhatsApp checkout must have a real destination.
