@@ -234,6 +234,15 @@ describe("an admin", () => {
     ).toMatch(/permission denied/);
   });
 
+  it("prevents deleting products referenced by open orders", async () => {
+    await insertOrder("received", [{ productId: PRODUCT, variantId: "v-black", quantity: 1 }]);
+    expect(
+      await failure(
+        as("authenticated", ADMIN, (tx) => tx.query("delete from public.products where id = $1 returning id", [PRODUCT])),
+      ),
+    ).toMatch(/part of an open order/i);
+  });
+
   it("confirms an order and takes its stock exactly once, then returns it on cancel", async () => {
     const id = await insertOrder("received", [
       { productId: PRODUCT, variantId: "v-black", quantity: 2 },
