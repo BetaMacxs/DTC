@@ -1,5 +1,6 @@
 import "server-only";
 import { headers } from "next/headers";
+import { isIP } from "node:net";
 import type { StoreSettings } from "@/lib/domain/settings";
 
 /**
@@ -18,18 +19,28 @@ export async function siteOrigin(settings: StoreSettings): Promise<string> {
   return `${protocol}://${host}`;
 }
 
-/** Best-effort client address for rate limiting. Never stored. */
+/** Client address from headers set by the hosting proxy. The caller hashes it before persistence. */
 export async function clientAddress(): Promise<string> {
   const list = await headers();
-  const candidates = [
-    list.get("x-vercel-forwarded-for"),
-    list.get("cf-connecting-ip"),
-    list.get("x-real-ip"),
-    list.get("x-forwarded-for")?.split(",")[0],
-  ];
-  for (const raw of candidates) {
+  const validIp = (raw: string | null | undefined): string | null => {
     const value = raw?.trim();
-    if (value && value.length <= 64) return value;
-  }
-  return "unknown";
+    if (!value || value.length > 64) return null;
+    if (isIP(value)) return value;
+    const bracketed = value.match(/^\\[([^\\]]+)\\](?::\\d+)?$/);
+    if (bracketed && isIP(bracketed[1])) return bracketed[1];
+    const ipv4WithPort = value.match(/^((?:\\d{1,3}\\.){3}\\d{1,3}):\\d+$/);
+    if (ipv4WithPort && isIP(ipv4WithPort[1])) return ipv4WithPort[1];
+    return null;
+  };
+
+  // Vercel and Cloudflare overwrite these platform-specific headers. For a
+  // conventional reverse proxy, use the final forwarded hop (the proxy-added
+  // address), never the visitor-controlled first entry.
+  const vercel = validIp(list.get("x-vercel-forwarded-for")?.split(",")[0]);
+  if (vercel) return vercel;
+  const cloudflare = validIp(list.get("cf-connecting-ip"));
+  if (cloudflare) return cloudflare;
+  const forwarded = list.get("x-forwarded-for")?.split(",").map((part) => part.trim()).filter(Boolean);
+  const proxyAdded = validIp(forwarded?.at(-1));
+  return proxyAdded ?? "unknown";
 }
