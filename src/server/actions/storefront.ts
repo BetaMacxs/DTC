@@ -63,15 +63,33 @@ export type PlaceOrderResult =
   | { ok: false; errors: CheckoutErrors; message?: "rate_limited" | "failed" | "cart_changed"; quote?: CartQuote };
 
 export async function placeOrderAction(raw: Record<string, unknown>): Promise<PlaceOrderResult> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return { ok: false, errors: {}, message: "failed" };
+  }
+
   // Honeypot: a field people never see. Bots fill it; reply like a failure.
   if (typeof raw.company === "string" && raw.company.trim() !== "") {
     return { ok: false, errors: {}, message: "failed" };
   }
-  if (!(await checkFormToken(raw.formToken))) {
+
+  // Count every submission, including invalid tokens, so the token check
+  // cannot be used as a cheap unmetered endpoint.
+  try {
+    const limit = await rateLimit(`order:${await clientAddress()}`, 6, 10 * 60 * 1000);
+    if (!limit.ok) return { ok: false, errors: {}, message: "rate_limited" };
+  } catch (error) {
+    console.error("[checkout] shared rate limiting is unavailable:", error);
     return { ok: false, errors: {}, message: "failed" };
   }
-  const limit = await rateLimit(`order:${await clientAddress()}`, 6, 10 * 60 * 1000);
-  if (!limit.ok) return { ok: false, errors: {}, message: "rate_limited" };
+
+  try {
+    if (!(await checkFormToken(raw.formToken))) {
+      return { ok: false, errors: {}, message: "failed" };
+    }
+  } catch (error) {
+    console.error("[checkout] form-token verification failed:", error);
+    return { ok: false, errors: {}, message: "failed" };
+  }
 
   const parsed = checkoutSchema.safeParse(raw);
   if (!parsed.success) {
