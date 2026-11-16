@@ -1,8 +1,8 @@
 {
-  "name": "halden-ecommerce-starter",
+  "name": "detail-corner",
   "version": "1.0.0",
   "private": true,
-  "description": "Halden: a customizable e-commerce starter with a storefront, a real admin dashboard, and WhatsApp and pay-on-delivery checkout. Next.js + Supabase.",
+  "description": "Detail Corner ecommerce storefront and administration platform. Next.js + Supabase.",
   "engines": {
     "node": ">=20.9.0"
   },
