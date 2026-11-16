@@ -79,7 +79,13 @@ export async function signInAction(_previous: unknown, form: FormData): Promise<
   const parsed = credentialsSchema.safeParse({ email: form.get("email"), password: form.get("password") });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
 
-  const limit = await rateLimit(`signin:${await clientAddress()}`, 10, 15 * 60 * 1000);
+  let limit: { ok: boolean; retryAfterMs: number };
+  try {
+    limit = await rateLimit(`signin:${await clientAddress()}`, 10, 15 * 60 * 1000);
+  } catch {
+    // Do not attempt authentication without the shared production rate limit.
+    return { error: "The sign-in service is temporarily unavailable. Please try again shortly." };
+  }
   if (!limit.ok) return { error: "Too many attempts. Wait a few minutes and try again." };
 
   const result = await getBackend().auth.signIn(parsed.data.email, parsed.data.password);
