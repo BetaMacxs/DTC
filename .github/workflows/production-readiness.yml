@@ -94,9 +94,12 @@ jobs:
         id: staging
         shell: bash
         run: |
-          if [[ -z "$STAGING_SUPABASE_URL" || -z "$STAGING_SUPABASE_PUBLISHABLE_KEY" || -z "$STAGING_SUPABASE_SECRET_KEY" || -z "$STAGING_ADMIN_EMAIL" || -z "$STAGING_ADMIN_PASSWORD" || -z "$STAGING_TESTS_CONFIRMATION" ]]; then
+          if [[ -z "$STAGING_SUPABASE_URL" && -z "$STAGING_SUPABASE_PUBLISHABLE_KEY" && -z "$STAGING_SUPABASE_SECRET_KEY" && -z "$STAGING_ADMIN_EMAIL" && -z "$STAGING_ADMIN_PASSWORD" && -z "$STAGING_TESTS_CONFIRMATION" ]]; then
             echo "configured=false" >> "$GITHUB_OUTPUT"
             echo "Staging tests skipped: add the documented STAGING_* repository secrets to enable them."
+          elif [[ -z "$STAGING_SUPABASE_URL" || -z "$STAGING_SUPABASE_PUBLISHABLE_KEY" || -z "$STAGING_SUPABASE_SECRET_KEY" || -z "$STAGING_ADMIN_EMAIL" || -z "$STAGING_ADMIN_PASSWORD" || -z "$STAGING_TESTS_CONFIRMATION" ]]; then
+            echo "::error::Staging configuration is incomplete. Add all six documented STAGING_* repository secrets."
+            exit 1
           elif [[ "$STAGING_TESTS_CONFIRMATION" != "I_CONFIRM_THIS_IS_A_DISPOSABLE_STAGING_PROJECT" ]]; then
             echo "::error::STAGING_TESTS_CONFIRMATION does not match the required disposable-staging confirmation."
             exit 1
