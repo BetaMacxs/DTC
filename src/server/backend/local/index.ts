@@ -196,7 +196,7 @@ function adminApi(user: AdminUser): AdminApi {
           );
           const newVariantIds = new Set(product.variants.map((variant) => variant.id));
           if (openOrders.some((order) => order.items.some(
-            (item) => item.productId === product.id && !newVariantIds.has(item.variantId),
+            (item) => item.productId === product.id && !newVariantIds.has(item.variantId ?? ""),
           ))) {
             throw new ConflictError("A product option cannot be removed while it is referenced by an open order.");
           }
