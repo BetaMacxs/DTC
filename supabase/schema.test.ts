@@ -187,7 +187,7 @@ describe("a signed-in user who is not an admin", () => {
     expect(
       await failure(
         as("authenticated", SHOPPER, (tx) =>
-          tx.query("select public.admin_transition_order($1, 'received', 'confirmed', 1, '')", [PRODUCT]),
+          tx.query("select public.admin_transition_order($1, 'received', 'confirmed', 0, '')", [PRODUCT]),
         ),
       ),
     ).toMatch(/not allowed/);
@@ -250,7 +250,7 @@ describe("an admin", () => {
     const before = await stockOf();
     const confirmed = await as("authenticated", ADMIN, (tx) =>
       tx.query<{ order: { status: string; stock_reserved: boolean; access_token_hash?: string } }>(
-        "select public.admin_transition_order($1, 'received', 'confirmed', 1, 'Called the customer') as order",
+        "select public.admin_transition_order($1, 'received', 'confirmed', 0, 'Called the customer') as order",
         [id],
       ),
     );
@@ -261,12 +261,12 @@ describe("an admin", () => {
     // A stale second click is refused instead of reserving again.
     expect(
       await failure(
-        as("authenticated", ADMIN, (tx) => tx.query("select public.admin_transition_order($1, 'received', 'confirmed', 1, '')", [id])),
+        as("authenticated", ADMIN, (tx) => tx.query("select public.admin_transition_order($1, 'received', 'confirmed', 0, '')", [id])),
       ),
     ).toMatch(/conflict/);
 
     await as("authenticated", ADMIN, (tx) =>
-      tx.query("select public.admin_transition_order($1, 'confirmed', 'cancelled', -1, '')", [id]),
+      tx.query("select public.admin_transition_order($1, 'confirmed', 'cancelled', 0, '')", [id]),
     );
     expect(await stockOf()).toBe(before);
 
@@ -394,7 +394,7 @@ describe("atomic inventory reservation and POPIA redaction", () => {
     ]);
     const msg = await failure(
       as("authenticated", ADMIN, (tx) =>
-        tx.query("select public.admin_transition_order($1, 'received', 'confirmed', 1, '')", [oversellId]),
+        tx.query("select public.admin_transition_order($1, 'received', 'confirmed', 0, '')", [oversellId]),
       ),
     );
     expect(msg).toMatch(/Not enough stock/);
@@ -414,7 +414,7 @@ describe("atomic inventory reservation and POPIA redaction", () => {
     expect(
       await failure(
         as("authenticated", ADMIN, (tx) =>
-          tx.query("select public.admin_transition_order($1, 'received', 'confirmed', 1, '')", [missingVariantId]),
+          tx.query("select public.admin_transition_order($1, 'received', 'confirmed', 0, '')", [missingVariantId]),
         ),
       ),
     ).toMatch(/no longer exists/);
@@ -425,12 +425,12 @@ describe("atomic inventory reservation and POPIA redaction", () => {
       { productId: PRODUCT, variantId: "v-black", quantity: 2 },
     ]);
     await as("authenticated", ADMIN, (tx) =>
-      tx.query("select public.admin_transition_order($1, 'received', 'confirmed', 1, '')", [validSplitId]),
+      tx.query("select public.admin_transition_order($1, 'received', 'confirmed', 0, '')", [validSplitId]),
     );
     expect(await stockOf()).toBe(before - 4);
 
     await as("authenticated", ADMIN, (tx) =>
-      tx.query("select public.admin_transition_order($1, 'confirmed', 'cancelled', -1, '')", [validSplitId]),
+      tx.query("select public.admin_transition_order($1, 'confirmed', 'cancelled', 0, '')", [validSplitId]),
     );
     expect(await stockOf()).toBe(before);
   });
