@@ -13,10 +13,14 @@ import type { StoreSettings } from "@/lib/domain/settings";
 export async function siteOrigin(settings: StoreSettings): Promise<string> {
   if (settings.store.siteUrl) return settings.store.siteUrl.replace(/\/+$/, "");
   const list = await headers();
-  const host = list.get("x-forwarded-host")?.split(",")[0]?.trim() || list.get("host") || "localhost:3000";
-  const forwarded = list.get("x-forwarded-proto")?.split(",")[0]?.trim();
-  const protocol = forwarded || (/^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host) ? "http" : "https");
-  return `${protocol}://${host}`;
+  // Use the request Host header rather than visitor-supplied forwarded host or
+  // protocol values. Vercel preserves the public host and serves production
+  // traffic over HTTPS; localhost remains HTTP for development.
+  const host = list.get("host")?.trim() || "localhost:3000";
+  const validHost = /^(?:[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?|\[[0-9a-f:]+\])(?::\d{1,5})?$/i.test(host);
+  if (!validHost) return "https://localhost";
+  const local = /^(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i.test(host);
+  return `${local ? "http" : "https"}://${host}`;
 }
 
 /** Client address from headers set by the hosting proxy. The caller hashes it before persistence. */
