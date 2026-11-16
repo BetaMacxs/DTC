@@ -407,6 +407,18 @@ describe("atomic inventory reservation and POPIA redaction", () => {
     );
     expect(statusAfter.rows[0]).toEqual({ status: "received", stock_reserved: false });
 
+    // A product deleted after checkout must not be silently confirmed.
+    const missingProductId = await insertOrder("received", [
+      { productId: "00000000-0000-4000-8000-00000000ffff", variantId: "v-black", quantity: 1 },
+    ]);
+    expect(
+      await failure(
+        as("authenticated", ADMIN, (tx) =>
+          tx.query("select public.admin_transition_order($1, 'received', 'confirmed', 0, '')", [missingProductId]),
+        ),
+      ),
+    ).toMatch(/product in this order no longer exists/i);
+
     // Missing variant on a tracked product is also rejected.
     const missingVariantId = await insertOrder("received", [
       { productId: PRODUCT, variantId: "v-deleted", quantity: 1 },
