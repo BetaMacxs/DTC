@@ -135,11 +135,15 @@ export function productionCheckoutProblem(settings: StoreSettings): "store_name"
   if (!settings.policies.privacy.trim()) return "privacy_policy";
 
   const defaultShipping = DEFAULT_SETTINGS.shipping.methods[0];
+  const placeholderDescriptions = new Set([
+    defaultShipping.description,
+    "We'll confirm the delivery cost and timing.",
+  ]);
   const hasPlaceholderShipping = settings.shipping.methods.some(
     (method) =>
       method.id === defaultShipping.id &&
       method.name === defaultShipping.name &&
-      method.description === defaultShipping.description &&
+      placeholderDescriptions.has(method.description) &&
       method.price === defaultShipping.price &&
       method.requiresAddress === defaultShipping.requiresAddress,
   );
