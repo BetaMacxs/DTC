@@ -15,7 +15,8 @@ vi.mock("@/server/backend/supabase/clients", () => ({
   serviceClient: mocks.serviceClient,
 }));
 vi.mock("@/server/crypto", () => ({
-  sha256: (value: string) => `hashed:${value}`,
+  sha256: (value: string) => `local-hash:${value}`,
+  sign: (value: string, secret: string) => `hmac:${secret}:${value}`,
 }));
 
 import { RateLimitUnavailableError, rateLimit } from "./rate-limit";
@@ -32,7 +33,7 @@ describe("rateLimit", () => {
   it("uses a hashed key with the shared Supabase counter", async () => {
     await expect(rateLimit("signin:203.0.113.8", 10, 60_000)).resolves.toEqual({ ok: true, retryAfterMs: 0 });
     expect(mocks.rpc).toHaveBeenCalledWith("check_rate_limit", {
-      p_key: "hashed:signin:203.0.113.8",
+      p_key: "hmac:secret:signin:203.0.113.8",
       p_limit: 10,
       p_window_ms: 60_000,
     });
