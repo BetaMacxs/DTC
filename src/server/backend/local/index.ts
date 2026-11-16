@@ -196,7 +196,7 @@ function adminApi(user: AdminUser): AdminApi {
       await updateData((data) => {
         const referencedByOpenOrder = data.orders.some(
           (order) =>
-            ["received", "confirmed", "fulfilled"].includes(order.status) &&
+            ["prepared", "opened", "received", "confirmed", "fulfilled"].includes(order.status) &&
             order.items.some((item) => item.productId === id),
         );
         if (referencedByOpenOrder) {
