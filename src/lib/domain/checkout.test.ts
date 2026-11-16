@@ -34,6 +34,31 @@ describe("live store readiness", () => {
       },
     });
     expect(productionCheckoutProblem(noShipping)).toBe("shipping");
+
+    const placeholderStillSelectable = parseSettings({
+      store: { name: "Detail Corner" },
+      contact: { email: "hello@detailcorner.co.za" },
+      policies: { privacy: "We explain how customer information is used." },
+      shipping: {
+        methods: [
+          {
+            id: "delivery",
+            name: "Delivery",
+            description: "We'll confirm the delivery cost and timing.",
+            price: 0,
+            requiresAddress: true,
+          },
+          {
+            id: "pickup",
+            name: "Collection",
+            description: "Collect from the shop",
+            price: 0,
+            requiresAddress: false,
+          },
+        ],
+      },
+    });
+    expect(productionCheckoutProblem(placeholderStillSelectable)).toBe("shipping");
   });
 
   it("accepts a named store with real contact details and an explicit delivery method", () => {
