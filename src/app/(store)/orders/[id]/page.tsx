@@ -25,7 +25,10 @@ import { getStorefront } from "@/server/storefront";
  * bookmark the page to follow the order.
  */
 
-export const metadata: Metadata = { robots: { index: false, follow: false } };
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+  referrer: "no-referrer",
+};
 
 type Props = {
   params: Promise<{ id: string }>;
