@@ -1,5 +1,5 @@
 import "server-only";
-import { createCipheriv, createDecipheriv, createHash, randomBytes, randomInt, randomUUID } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes, randomInt } from "node:crypto";
 import { deflateRawSync, inflateRawSync } from "node:zlib";
 import { cookies } from "next/headers";
 import type { Order } from "@/lib/domain/types";
@@ -28,6 +28,14 @@ type Receipt = { order: Order; accessTokenHash: string; expires: number };
 const receiptCookie = (id: string) => `demo-order-${id}`;
 const openedCookie = (id: string) => `demo-order-opened-${id}`;
 const orderPath = (id: string) => `/orders/${id}`;
+
+function orderIdForToken(accessTokenHash: string): string {
+  const bytes = createHash("sha256").update(`demo-order:${accessTokenHash}`).digest().subarray(0, 16);
+  bytes[6] = (bytes[6] & 0x0f) | 0x50;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = bytes.toString("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
 
 async function key(): Promise<Buffer> {
   return createHash("sha256").update(`storefront-demo-orders:${await appSecret()}`).digest();
@@ -84,9 +92,12 @@ export function withDemoOrders(api: PublicApi): PublicApi {
     ...api,
 
     async createOrder(order, accessTokenHash) {
+      const id = orderIdForToken(accessTokenHash);
+      const existing = await find(id, accessTokenHash);
+      if (existing) return { id, number: existing.order.number };
+
       const now = Date.now();
       const stamp = new Date(now).toISOString();
-      const id = randomUUID();
       // Random rather than counted: instances share no counter, and visitors shouldn't share numbers.
       const number = randomInt(100_000, 1_000_000);
       const full: Order = {
