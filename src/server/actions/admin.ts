@@ -178,6 +178,12 @@ export async function changePasswordAction(_previous: unknown, form: FormData): 
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
   try {
     const admin = await adminOrThrow();
+    try {
+      const limit = await rateLimit(`password-change:${admin.user.id}`, 5, 15 * 60 * 1000);
+      if (!limit.ok) return { error: "Too many password attempts. Wait a few minutes and try again." };
+    } catch {
+      return { error: "Password changes are temporarily unavailable. Please try again shortly." };
+    }
     await admin.changePassword(parsed.data.current, parsed.data.next);
     return { ok: true };
   } catch (error) {
