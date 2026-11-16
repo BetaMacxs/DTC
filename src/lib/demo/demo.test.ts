@@ -169,6 +169,25 @@ describe("Detail Corner starter settings & demo cleanup", () => {
     expect(detectDemoSettings(cleaned)).toEqual([]);
   });
 
+  it("preserves USD for a customised non-Halden store during demo cleanup", () => {
+    const settings = settingsSchema.parse({
+      ...detailCornerStarterSettings(),
+      store: {
+        ...detailCornerStarterSettings().store,
+        name: "My International Store",
+        currency: "USD",
+        description: "A customised store using USD.",
+      },
+      contact: { email: "owner@example.com", phone: "", whatsapp: "", address: "", hours: "" },
+      checkout: { ...detailCornerStarterSettings().checkout, bankTransferInstructions: "Custom payment instructions" },
+    });
+
+    const { settings: cleaned, cleanedFields } = stripDemoSettings(settings);
+    expect(cleaned.store.currency).toBe("USD");
+    expect(cleanedFields).not.toContain("store.currency");
+    expect(detectDemoSettings(settings)).not.toContain("Demo currency (USD)");
+  });
+
   it("converts Halden USD currency to ZAR and preserves custom shipping settings", () => {
     const sample = demoSettings();
     const customShipping = {
