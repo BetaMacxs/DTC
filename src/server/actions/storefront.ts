@@ -13,6 +13,7 @@ import {
 } from "@/lib/domain/checkout";
 import { isWhatsAppConfigured } from "@/lib/domain/settings";
 import { getBackend } from "@/server/backend";
+import { detectDemoSettings } from "@/lib/demo/seed";
 import { backendKind, isProduction, publicDemoMode } from "@/server/env";
 import { sha256 } from "@/server/crypto";
 import { checkFormToken } from "@/server/form-token";
@@ -116,8 +117,12 @@ export async function placeOrderAction(raw: Record<string, unknown>): Promise<Pl
   const { settings, catalog } = storefront;
   if (backendKind() === "supabase" && isProduction() && !publicDemoMode()) {
     const setupProblem = productionCheckoutProblem(settings);
-    if (setupProblem) {
-      console.error("[checkout] live store setup is incomplete:", setupProblem);
+    const remainingDemoSettings = detectDemoSettings(settings);
+    if (setupProblem || remainingDemoSettings.length > 0) {
+      console.error("[checkout] live store setup is incomplete:", {
+        setupProblem,
+        remainingDemoSettings,
+      });
       return { ok: false, errors: {}, message: "failed" };
     }
   }
