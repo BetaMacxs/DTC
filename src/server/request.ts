@@ -7,8 +7,7 @@ import type { StoreSettings } from "@/lib/domain/settings";
  * The address the store is being visited at. Used for absolute links: share
  * cards, the sitemap, and product links inside WhatsApp messages. An owner
  * can pin a canonical address in Settings; otherwise the request's own host
- * is used, which is right on localhost, a temporary Hostinger domain and the
- * final domain alike.
+ * is used, which works on localhost, preview deployments and the final domain.
  */
 export async function siteOrigin(settings: StoreSettings): Promise<string> {
   if (settings.store.siteUrl) return settings.store.siteUrl.replace(/\/+$/, "");
