@@ -56,12 +56,12 @@ begin
            )
            from jsonb_array_elements(coalesce(orders.events, '[]'::jsonb))
                 with ordinality as e(value, ordinality)
-           where e.value ->> 'note' is distinct from 'Customer details and free-text notes redacted.'
+           where e.value ->> 'note' is distinct from 'Customer personal details and free-text notes redacted (POPIA).'
          ), '[]'::jsonb)
          || jsonb_build_array(jsonb_build_object(
            'at', to_char(now() at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
            'kind', 'note',
-           'note', 'Customer details and free-text notes redacted.',
+           'note', 'Customer personal details and free-text notes redacted (POPIA).',
            'by', 'system'
          ))
    where id = p_order_id
