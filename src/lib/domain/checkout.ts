@@ -93,6 +93,9 @@ export function checkoutErrors(
   if (!enabledCheckoutMethods(settings).includes(input.method as CheckoutMethod)) {
     errors.method = "method_disabled";
   }
+  if (input.method === "bank_transfer" && !settings.checkout.bankTransferInstructions.trim()) {
+    errors.method = "method_disabled";
+  }
 
   const shipping = settings.shipping.methods.find((method) => method.id === input.shippingMethodId);
   if (!shipping) errors.shippingMethodId = "shipping_required";
