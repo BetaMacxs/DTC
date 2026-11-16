@@ -13,6 +13,12 @@ describe("live store readiness", () => {
     const noContact = parseSettings({ store: { name: "Detail Corner" } });
     expect(productionCheckoutProblem(noContact)).toBe("contact");
 
+    const invalidContact = parseSettings({
+      store: { name: "Detail Corner" },
+      contact: { email: "hello@example.com", phone: "not a phone" },
+    });
+    expect(productionCheckoutProblem(invalidContact)).toBe("contact");
+
     const noPrivacyPolicy = parseSettings({
       store: { name: "Detail Corner" },
       contact: { email: "hello@detailcorner.co.za" },
