@@ -52,3 +52,73 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Run browser tests against isolated local stores
         run: npm run test:e2e
+
+  staging:
+    name: Supabase staging integration tests
+    if: github.event_name == 'push' && needs.e2e.result == 'success'
+    needs: [verify, e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      STAGING_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+      STAGING_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+      STAGING_SUPABASE_SECRET_KEY: ${{ secrets.STAGING_SUPABASE_SECRET_KEY }}
+      STAGING_ADMIN_EMAIL: ${{ secrets.STAGING_ADMIN_EMAIL }}
+      STAGING_ADMIN_PASSWORD: ${{ secrets.STAGING_ADMIN_PASSWORD }}
+      STAGING_TESTS_CONFIRMATION: ${{ secrets.STAGING_TESTS_CONFIRMATION }}
+      SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+      SUPABASE_SECRET_KEY: ${{ secrets.STAGING_SUPABASE_SECRET_KEY }}
+      DB_CHECK_CONFIRMATION: ${{ secrets.STAGING_TESTS_CONFIRMATION }}
+      E2E_BACKEND: supabase
+      E2E_ADMIN_EMAIL: ${{ secrets.STAGING_ADMIN_EMAIL }}
+      E2E_ADMIN_PASSWORD: ${{ secrets.STAGING_ADMIN_PASSWORD }}
+      E2E_SUPABASE_CONFIRMATION: ${{ secrets.STAGING_TESTS_CONFIRMATION }}
+      E2E_RUN_ID: ${{ github.run_id }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Check staging configuration
+        id: staging
+        shell: bash
+        run: |
+          if [[ -z "$STAGING_SUPABASE_URL" || -z "$STAGING_SUPABASE_PUBLISHABLE_KEY" || -z "$STAGING_SUPABASE_SECRET_KEY" || -z "$STAGING_ADMIN_EMAIL" || -z "$STAGING_ADMIN_PASSWORD" || -z "$STAGING_TESTS_CONFIRMATION" ]]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "Staging tests skipped: add the documented STAGING_* repository secrets to enable them."
+          elif [[ "$STAGING_TESTS_CONFIRMATION" != "I_CONFIRM_THIS_IS_A_DISPOSABLE_STAGING_PROJECT" ]]; then
+            echo "::error::STAGING_TESTS_CONFIRMATION does not match the required disposable-staging confirmation."
+            exit 1
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Install Chromium
+        if: steps.staging.outputs.configured == 'true'
+        run: npx playwright install --with-deps chromium
+      - name: Check live Supabase permissions
+        if: steps.staging.outputs.configured == 'true'
+        run: npm run db:check
+      - name: Check concurrent stock reservation and shared rate limits
+        if: steps.staging.outputs.configured == 'true'
+        run: npm run test:staging
+      - name: Seed disposable staging store
+        if: steps.staging.outputs.configured == 'true'
+        run: npm run db:seed -- --settings
+      - name: Run browser tests against staging Supabase
+        if: steps.staging.outputs.configured == 'true'
+        run: npm run test:e2e
+      - name: Upload staging Playwright report
+        if: failure() && steps.staging.outputs.configured == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-playwright-report-${{ github.run_id }}
+          path: |
+            playwright-report/
+            tests/.artifacts/results/
+          retention-days: 7
