@@ -6,6 +6,7 @@ import { backendKind, backendProblem, hasSupabaseEnv, supabaseConfig } from "./e
 
 const MANAGED_KEYS = [
   "STORE_BACKEND",
+  "SESSION_SECRET",
   "SUPABASE_URL",
   "SUPABASE_PUBLISHABLE_KEY",
   "SUPABASE_ANON_KEY",
@@ -72,6 +73,18 @@ describe("environment & backend selection", () => {
     vi.stubEnv("SUPABASE_URL", "https://example.supabase.co");
     expect(backendKind()).toBe("supabase");
     expect(backendProblem()).toMatch(/partially configured/i);
+  });
+
+  it("rejects weak signing secrets and non-HTTPS production database URLs", () => {
+    vi.stubEnv("SESSION_SECRET", "short");
+    expect(backendProblem()).toMatch(/SESSION_SECRET must contain at least 32 characters/i);
+
+    vi.stubEnv("SESSION_SECRET", "");
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("SUPABASE_URL", "http://example.supabase.co");
+    vi.stubEnv("SUPABASE_PUBLISHABLE_KEY", "sb_publishable_test");
+    vi.stubEnv("SUPABASE_SECRET_KEY", "sb_secret_test");
+    expect(backendProblem()).toMatch(/SUPABASE_URL must use HTTPS/i);
   });
 
   it("enforces production database and secret-key requirements", () => {
