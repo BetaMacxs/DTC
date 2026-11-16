@@ -438,6 +438,13 @@ describe("atomic inventory reservation and POPIA redaction", () => {
   it("allows admins to redact closed orders for POPIA while preserving totals and blocking non-admins", async () => {
     const activeId = await insertOrder("received", [{ productId: PRODUCT, variantId: "v-black", quantity: 1 }]);
     const completedId = await insertOrder("completed", [{ productId: PRODUCT, variantId: "v-black", quantity: 1 }], "secret-hash");
+    await db.query(
+      `update public.orders
+          set internal_note = 'Call Ashley on her private number',
+              events = '[{"at":"2026-11-16T10:00:00.000Z","kind":"status","by":"owner@shop.example","note":"Customer gave personal delivery instructions"}]'::jsonb
+        where id = $1`,
+      [completedId],
+    );
 
     expect(
       await failure(as("anon", null, (tx) => tx.query("select public.admin_anonymize_order($1)", [completedId]))),
@@ -456,8 +463,9 @@ describe("atomic inventory reservation and POPIA redaction", () => {
           address: unknown;
           customer_note: string;
           total: number;
+          internal_note: string;
           access_token_hash?: string;
-          events: { kind: string; note: string }[];
+          events: { kind: string; note?: string; by: string }[];
         };
       }>("select public.admin_anonymize_order($1) as order", [completedId]),
     );
@@ -465,9 +473,15 @@ describe("atomic inventory reservation and POPIA redaction", () => {
     expect(res.rows[0].order.customer).toEqual({ name: "Redacted customer", phone: "", email: "" });
     expect(res.rows[0].order.address).toBeNull();
     expect(res.rows[0].order.customer_note).toBe("");
+    expect(res.rows[0].order.internal_note).toBe("");
     expect(res.rows[0].order.total).toBe(60);
     expect(res.rows[0].order.access_token_hash).toBeUndefined();
+    expect(res.rows[0].order.events).toHaveLength(2);
+    expect(res.rows[0].order.events[0]).toMatchObject({ kind: "status", by: "admin" });
+    expect(res.rows[0].order.events[0].note).toBeUndefined();
     expect(res.rows[0].order.events.at(-1)?.note).toMatch(/POPIA/);
+    expect(JSON.stringify(res.rows[0].order.events)).not.toContain("owner@shop.example");
+    expect(JSON.stringify(res.rows[0].order.events)).not.toContain("personal delivery instructions");
   });
 });
 
