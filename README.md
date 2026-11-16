@@ -111,7 +111,7 @@ Received ──▶ Confirmed ──▶ Fulfilled ──▶ Completed
 
 ## More about Supabase
 
-- `npm run db:check` checks your project's security from the outside — what a shopper and a signed-in stranger can and can't do. It changes nothing.
+- `npm run db:check` checks your project's security from the outside — what a shopper and a signed-in stranger can and can't do. It creates disposable probe records and users, removes them afterwards, and performs a same-value settings update to check write access. Run it against a dedicated staging project, not production.
 - After updating the starter, `npm run db:migrate` applies any new database changes.
 - `npm run db:seed` adds or restores the demo products; `npm run db:seed -- --remove` takes them out. You can also do both from **Settings → Demo content** in the dashboard.
 - To start over with a fresh demo store on the local store: `npm run demo:reset` (your current data is moved to `.data-backups/`, never deleted).
