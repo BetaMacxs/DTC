@@ -1,4 +1,5 @@
 import { readdirSync, readFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { PGlite, type Transaction } from "@electric-sql/pglite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -95,7 +96,7 @@ const variants = (stock: number) =>
     { id: "v-sand", optionValues: ["Sand"], price: 30, compareAtPrice: null, sku: "", stock, available: true, imageId: null },
   ]);
 
-async function insertOrder(status: string, items: unknown[], hash = "hash-1"): Promise<string> {
+async function insertOrder(status: string, items: unknown[], hash = randomUUID()): Promise<string> {
   const result = await as("service_role", null, (tx) =>
     tx.query<{ id: string; number: number }>(
       `insert into public.orders (channel, status, payment_method, currency, items, subtotal, total, customer, access_token_hash)
@@ -333,6 +334,13 @@ describe("an admin", () => {
 });
 
 describe("the website's server (secret key)", () => {
+  it("rejects duplicate checkout idempotency tokens", async () => {
+    await insertOrder("received", [], "one-checkout-token-hash");
+    expect(
+      await failure(insertOrder("received", [], "one-checkout-token-hash")),
+    ).toMatch(/duplicate key|unique constraint/i);
+  });
+
   it("numbers orders from 1001", async () => {
     const rows = await db.query<{ number: number }>("select min(number)::int as number from public.orders");
     expect(rows.rows[0].number).toBe(1001);
