@@ -117,6 +117,9 @@ const publicApi: PublicApi = {
 
   async createOrder(order, accessTokenHash) {
     return updateData((data) => {
+      const existing = data.orders.find((candidate) => candidate.accessTokenHash === accessTokenHash);
+      if (existing) return { id: existing.id, number: existing.number };
+
       const stamp = now();
       const stored: StoredOrder = {
         ...order,
