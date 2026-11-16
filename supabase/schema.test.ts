@@ -96,7 +96,7 @@ const variants = (stock: number) =>
     { id: "v-sand", optionValues: ["Sand"], price: 30, compareAtPrice: null, sku: "", stock, available: true, imageId: null },
   ]);
 
-async function insertOrder(status: string, items: unknown[], hash = randomUUID()): Promise<string> {
+async function insertOrder(status: string, items: unknown[], hash: string = randomUUID()): Promise<string> {
   const result = await as("service_role", null, (tx) =>
     tx.query<{ id: string; number: number }>(
       `insert into public.orders (channel, status, payment_method, currency, items, subtotal, total, customer, access_token_hash)
