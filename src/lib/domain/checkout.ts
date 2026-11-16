@@ -126,7 +126,7 @@ export function productionCheckoutProblem(settings: StoreSettings): "store_name"
 
   const email = settings.contact.email.trim().toLowerCase();
   const placeholderEmail =
-    email.endsWith(".example") || /@(example\\.com|example\\.net|example\\.org)$/.test(email);
+    email.endsWith(".example") || /@(example\.com|example\.net|example\.org)$/.test(email);
   const hasRealContact =
     isPlausiblePhone(settings.contact.phone) ||
     isValidWhatsAppNumber(settings.contact.whatsapp) ||
