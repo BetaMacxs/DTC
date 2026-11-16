@@ -25,6 +25,15 @@ describe("live store readiness", () => {
     });
     expect(productionCheckoutProblem(noPrivacyPolicy)).toBe("privacy_policy");
 
+    // The untouched schema default is a placeholder even though its description
+    // includes "with you" — it must not be mistaken for a configured delivery method.
+    const defaultShipping = parseSettings({
+      store: { name: "Detail Corner" },
+      contact: { email: "hello@detailcorner.co.za" },
+      policies: { privacy: "We explain how customer information is used." },
+    });
+    expect(productionCheckoutProblem(defaultShipping)).toBe("shipping");
+
     const noShipping = parseSettings({
       store: { name: "Detail Corner" },
       contact: { email: "hello@detailcorner.co.za" },
