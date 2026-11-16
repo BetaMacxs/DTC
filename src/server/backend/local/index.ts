@@ -315,7 +315,7 @@ function adminApi(user: AdminUser): AdminApi {
       return order ? publicOrder(order) : null;
     },
 
-    async transitionOrder({ id, from, to, stockDelta, note }) {
+    async transitionOrder({ id, from, to, note }) {
       return updateData((data) => {
         const order = data.orders.find((candidate) => candidate.id === id);
         if (!order) throw new NotFoundError("Order not found");
@@ -323,6 +323,14 @@ function adminApi(user: AdminUser): AdminApi {
           throw new ConflictError(`This order is now "${order.status}" — someone else updated it. Reload to continue.`);
         }
         if (!canTransition(from, to)) throw new ConflictError("That step is not possible from here.");
+
+        // Mirror the database backend: derive stock changes from the locked
+        // order state, never from a caller-supplied delta.
+        const stockDelta = to === "confirmed" && !order.stockReserved
+          ? 1
+          : to === "cancelled" && order.stockReserved
+            ? -1
+            : 0;
 
         const stamp = now();
         if (stockDelta !== 0) {
@@ -382,12 +390,20 @@ function adminApi(user: AdminUser): AdminApi {
         order.customer = { name: "Redacted customer", phone: "", email: "" };
         order.address = null;
         order.customerNote = "";
+        order.internalNote = "";
+        order.events = order.events.map((event) => ({
+          at: event.at,
+          kind: event.kind,
+          ...(event.from ? { from: event.from } : {}),
+          ...(event.to ? { to: event.to } : {}),
+          by: event.by === "customer" || event.by === "system" ? event.by : "admin",
+        }));
         order.updatedAt = stamp;
         order.events.push({
           at: stamp,
           kind: "note",
-          note: "Customer personal details redacted (POPIA).",
-          by: user.email,
+          note: "Customer personal details and free-text notes redacted (POPIA).",
+          by: "system",
         });
         return publicOrder(order);
       });
