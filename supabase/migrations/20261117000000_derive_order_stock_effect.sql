@@ -215,3 +215,54 @@ drop trigger if exists prevent_product_delete_with_open_orders on public.product
 create trigger prevent_product_delete_with_open_orders
 before delete on public.products
 for each row execute function public.prevent_product_delete_with_open_orders();
+
+-- Open orders hold a reference to the exact product variant they were placed
+-- against. Do not remove that variant or change inventory tracking until the
+-- order has been completed, cancelled or discarded.
+create or replace function public.prevent_open_order_variant_changes()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if old.track_inventory is distinct from new.track_inventory and exists (
+    select 1
+      from public.orders o
+     where o.status in ('prepared', 'opened', 'received', 'confirmed', 'fulfilled')
+       and exists (
+         select 1
+           from jsonb_array_elements(o.items) as item
+          where item ->> 'productId' = old.id::text
+       )
+  ) then
+    raise exception 'Inventory tracking cannot be changed while this product is referenced by an open order.'
+      using errcode = 'P0001';
+  end if;
+
+  if exists (
+    select 1
+      from public.orders o
+      cross join lateral jsonb_array_elements(o.items) as item
+     where o.status in ('prepared', 'opened', 'received', 'confirmed', 'fulfilled')
+       and item ->> 'productId' = old.id::text
+       and not exists (
+         select 1
+           from jsonb_array_elements(new.variants) as variant
+          where variant ->> 'id' = item ->> 'variantId'
+       )
+  ) then
+    raise exception 'A product option cannot be removed while it is referenced by an open order.'
+      using errcode = 'P0001';
+  end if;
+
+  return new;
+end;
+$$;
+
+revoke all on function public.prevent_open_order_variant_changes() from public, anon, authenticated;
+
+drop trigger if exists prevent_open_order_variant_changes on public.products;
+create trigger prevent_open_order_variant_changes
+before update of variants, track_inventory on public.products
+for each row execute function public.prevent_open_order_variant_changes();
