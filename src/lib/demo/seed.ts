@@ -90,7 +90,17 @@ export function detectDemoSettings(settings: StoreSettings): string[] {
   if (settings.store.name === sample.store.name || settings.store.description === sample.store.description) {
     hits.push("Store name/description (Halden)");
   }
-  if (settings.store.currency === "USD") {
+  // USD is only a demo marker when the rest of the settings positively
+  // identify the Halden template. A legitimate USD store must never be
+  // changed merely because it uses that currency.
+  const haldenMarkers = [
+    settings.store.name === sample.store.name,
+    settings.store.description === sample.store.description,
+    settings.contact.email === sample.contact.email,
+    settings.checkout.bankTransferInstructions === sample.checkout.bankTransferInstructions,
+  ].filter(Boolean).length;
+  const isHaldenDemo = haldenMarkers >= 2;
+  if (isHaldenDemo && settings.store.currency === "USD") {
     hits.push("Demo currency (USD)");
   }
   if (settings.contact.email === sample.contact.email) {
@@ -140,6 +150,14 @@ export function stripDemoSettings(settings: StoreSettings): { settings: StoreSet
   const starter = detailCornerStarterSettings();
   const cleanedFields: string[] = [];
   const next: StoreSettings = structuredClone(settings);
+  // Capture the demo identity before cleaning any individual fields.
+  const haldenMarkers = [
+    settings.store.name === sample.store.name,
+    settings.store.description === sample.store.description,
+    settings.contact.email === sample.contact.email,
+    settings.checkout.bankTransferInstructions === sample.checkout.bankTransferInstructions,
+  ].filter(Boolean).length;
+  const isHaldenDemo = haldenMarkers >= 2;
 
   if (next.store.name === sample.store.name) {
     next.store.name = starter.store.name;
@@ -153,7 +171,7 @@ export function stripDemoSettings(settings: StoreSettings): { settings: StoreSet
     next.store.description = "";
     cleanedFields.push("store.description");
   }
-  if (next.store.currency === "USD") {
+  if (isHaldenDemo && next.store.currency === "USD") {
     next.store.currency = starter.store.currency;
     cleanedFields.push("store.currency");
   }
