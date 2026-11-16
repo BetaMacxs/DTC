@@ -18,6 +18,9 @@ loadEnv();
 const url = env("SUPABASE_URL")?.replace(/\/+$/, "");
 const publishable = env("SUPABASE_PUBLISHABLE_KEY") ?? env("SUPABASE_ANON_KEY");
 const secret = env("SUPABASE_SECRET_KEY") ?? env("SUPABASE_SERVICE_ROLE_KEY");
+if (env("DB_CHECK_CONFIRMATION") !== "I_CONFIRM_THIS_IS_A_DISPOSABLE_STAGING_PROJECT") {
+  fail("Refusing to run against an unconfirmed database. Set DB_CHECK_CONFIRMATION only for a disposable staging project.");
+}
 if (!url || !publishable || !secret) {
   fail("Set SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY and SUPABASE_SECRET_KEY first.");
 }
