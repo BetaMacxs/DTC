@@ -22,8 +22,6 @@ async function stockOf(page: Page, productName: string, label = "Units in stock"
   return Number(await page.getByLabel(label).inputValue());
 }
 
-test.describe.configure({ mode: "serial" });
-
 test("a pay-on-delivery order: placed, confirmed (stock reserved), fulfilled, completed", async ({ page }) => {
   const before = await stockOf(page, "Aria Wireless Headphones");
 
@@ -54,6 +52,15 @@ test("a pay-on-delivery order: placed, confirmed (stock reserved), fulfilled, co
 });
 
 test("a bank-transfer order shows the payment details, and cancelling returns the stock", async ({ page }) => {
+  // Removing demo content intentionally clears its sample bank details. Configure
+  // disposable test instructions here rather than relying on another test's state.
+  await page.goto("/admin/settings#checkout");
+  const bankSwitch = page.locator("form#checkout").getByRole("switch", { name: /pay by bank transfer/ });
+  if ((await bankSwitch.getAttribute("aria-checked")) !== "true") await bankSwitch.click();
+  await page.getByLabel("Payment details").fill("Test account: 00000000. Reference: order number.");
+  await expect(bankSwitch).toHaveAttribute("aria-checked", "true");
+  await savePanel(page, "checkout", "Checkout saved");
+
   const before = await stockOf(page, "Keystone Mechanical Keyboard", "Stock for Linear");
 
   await addToBag(page, "keystone-mechanical-keyboard", ["Linear"]);
@@ -70,6 +77,12 @@ test("a bank-transfer order shows the payment details, and cancelling returns th
 
   await transition(page, order.id, "cancelled", /Cancelled/);
   expect(await stockOf(page, "Keystone Mechanical Keyboard", "Stock for Linear")).toBe(before);
+
+  // Leave the throwaway store in a clean state for the remaining checkout tests.
+  await page.goto("/admin/settings#checkout");
+  await page.getByLabel("Payment details").fill("");
+  if ((await bankSwitch.getAttribute("aria-checked")) === "true") await bankSwitch.click();
+  await savePanel(page, "checkout", "Checkout saved");
 });
 
 test("without a WhatsApp number, WhatsApp checkout is a demo that sends nothing", async ({ page }) => {
