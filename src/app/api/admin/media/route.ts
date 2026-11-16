@@ -31,7 +31,7 @@ export async function POST(request: Request) {
 
   const length = Number(request.headers.get("content-length") ?? 0);
   if (length > MAX_UPLOAD_BYTES + 64 * 1024) {
-    return Response.json({ error: "That photo is too large (8 MB maximum)." }, { status: 413 });
+    return Response.json({ error: "That photo is too large (4 MB maximum)." }, { status: 413 });
   }
 
   let file: File | null = null;
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
   }
   if (!file) return Response.json({ error: "No photo was attached." }, { status: 400 });
   if (file.size > MAX_UPLOAD_BYTES) {
-    return Response.json({ error: "That photo is too large (8 MB maximum)." }, { status: 413 });
+    return Response.json({ error: "That photo is too large (4 MB maximum)." }, { status: 413 });
   }
 
   const bytes = new Uint8Array(await file.arrayBuffer());
