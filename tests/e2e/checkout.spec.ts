@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { addToBag, expectToast, FICTIONAL_WHATSAPP, placeOrder as checkout, setWhatsAppNumber } from "./fixtures";
+import { addToBag, expectToast, FICTIONAL_WHATSAPP, placeOrder as checkout, savePanel, setWhatsAppNumber } from "./fixtures";
 
 /**
  * The order lifecycle end to end: a shopper orders, the owner works the order
