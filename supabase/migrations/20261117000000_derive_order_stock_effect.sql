@@ -91,7 +91,11 @@ begin
           from public.products p
          where p.id = v_req.product_id;
 
-        continue when not found or not v_product.track_inventory;
+        if not found then
+          raise exception 'Cannot confirm order: a product in this order no longer exists.'
+            using errcode = 'P0001';
+        end if;
+        continue when not v_product.track_inventory;
 
         select (v ->> 'stock')::integer
           into v_available
