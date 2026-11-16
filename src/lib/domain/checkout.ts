@@ -127,21 +127,19 @@ export function productionCheckoutProblem(settings: StoreSettings): "store_name"
   const hasRealContact = [
     settings.contact.phone,
     settings.contact.whatsapp,
-    settings.contact.email.endsWith(".example") ? "" : settings.contact.email,
+    settings.contact.email.toLowerCase().endsWith(".example") ? "" : settings.contact.email,
   ].some((value) => value.trim().length > 0);
   if (!hasRealContact) return "contact";
   if (!settings.policies.privacy.trim()) return "privacy_policy";
 
-  const hasConfiguredShipping = settings.shipping.methods.some(
+  const hasPlaceholderShipping = settings.shipping.methods.some(
     (method) =>
-      !(
-        method.id === "delivery" &&
-        method.name === "Delivery" &&
-        method.price === 0 &&
-        method.description === "We'll confirm the delivery cost and timing."
-      ),
+      method.id === "delivery" &&
+      method.name === "Delivery" &&
+      method.price === 0 &&
+      method.description === "We'll confirm the delivery cost and timing.",
   );
-  if (!hasConfiguredShipping) return "shipping";
+  if (settings.shipping.methods.length === 0 || hasPlaceholderShipping) return "shipping";
 
   return null;
 }
