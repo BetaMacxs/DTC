@@ -26,9 +26,9 @@ export async function clientAddress(): Promise<string> {
     const value = raw?.trim();
     if (!value || value.length > 64) return null;
     if (isIP(value)) return value;
-    const bracketed = value.match(/^\\[([^\\]]+)\\](?::\\d+)?$/);
+    const bracketed = value.match(/^\[([^\]]+)\](?::\d+)?$/);
     if (bracketed && isIP(bracketed[1])) return bracketed[1];
-    const ipv4WithPort = value.match(/^((?:\\d{1,3}\\.){3}\\d{1,3}):\\d+$/);
+    const ipv4WithPort = value.match(/^((?:\d{1,3}\.){3}\d{1,3}):\d+$/);
     if (ipv4WithPort && isIP(ipv4WithPort[1])) return ipv4WithPort[1];
     return null;
   };
