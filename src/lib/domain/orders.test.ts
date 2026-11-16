@@ -83,6 +83,61 @@ describe("quotes", () => {
     expect(quote.subtotal).toBe(18);
     expect(quote.orderable).toBe(true);
   });
+
+  it("handles configurable ZAR free-shipping threshold edge cases accurately", () => {
+    const zaSettings = (threshold: number | null) =>
+      settingsSchema.parse({
+        store: { name: "Detail Corner", currency: "ZAR" },
+        shipping: {
+          methods: [
+            { id: "flat", name: "Standard courier", price: 100, requiresAddress: true },
+            { id: "pickup", name: "Pickup", price: 0, requiresAddress: false },
+          ],
+          freeShippingThreshold: threshold,
+        },
+      });
+    const polish = product({
+      id: "polish",
+      name: "Ceramic Sealant",
+      variants: [variant({ id: "polish-v", price: 249.99 })],
+    });
+    const exact500 = product({
+      id: "kit",
+      name: "Wash Kit",
+      variants: [variant({ id: "kit-v", price: 500 })],
+    });
+
+    // Strictly below R500 (R499.98): flat R100 fee applies, R0.02 remaining
+    const below = quoteCart([{ productId: "polish", variantId: "polish-v", quantity: 2 }], [polish], zaSettings(500), "flat");
+    expect(below.subtotal).toBe(499.98);
+    expect(below.shipping).toMatchObject({ fee: 100, waived: false });
+    expect(below.freeShippingRemaining).toBe(0.02);
+    expect(below.total).toBe(599.98);
+
+    // Exact boundary (R500.00 >= R500): fee waived cleanly
+    const exact = quoteCart([{ productId: "kit", variantId: "kit-v", quantity: 1 }], [exact500], zaSettings(500), "flat");
+    expect(exact.shipping).toMatchObject({ fee: 0, waived: true });
+    expect(exact.freeShippingRemaining).toBeNull();
+    expect(exact.total).toBe(500);
+
+    // Changing threshold centrally to R1000 re-applies R100 shipping for R500 order
+    const raised = quoteCart([{ productId: "kit", variantId: "kit-v", quantity: 1 }], [exact500], zaSettings(1000), "flat");
+    expect(raised.shipping).toMatchObject({ fee: 100, waived: false });
+    expect(raised.freeShippingRemaining).toBe(500);
+    expect(raised.total).toBe(600);
+
+    // Disabled (null) or 0 threshold never waives paid shipping; 0-cost pickup is never marked waived
+    const disabled = quoteCart([{ productId: "kit", variantId: "kit-v", quantity: 1 }], [exact500], zaSettings(null), "flat");
+    expect(disabled.shipping).toMatchObject({ fee: 100, waived: false });
+    const zeroThresh = quoteCart([{ productId: "kit", variantId: "kit-v", quantity: 1 }], [exact500], zaSettings(0), "flat");
+    expect(zeroThresh.shipping).toMatchObject({ fee: 100, waived: false });
+    const pickup = quoteCart([{ productId: "kit", variantId: "kit-v", quantity: 1 }], [exact500], zaSettings(500), "pickup");
+    expect(pickup.shipping).toMatchObject({ fee: 0, waived: false });
+
+    // Unknown shipping method ID yields null shipping quote
+    const unknown = quoteCart([{ productId: "kit", variantId: "kit-v", quantity: 1 }], [exact500], zaSettings(500), "tampered-id");
+    expect(unknown.shipping).toBeNull();
+  });
 });
 
 describe("checkout", () => {

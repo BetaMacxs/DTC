@@ -6,6 +6,7 @@ import { buttonClass } from "@/components/ui/button";
 import { ORDER_STATUS_META, ORDER_TRANSITIONS, TRANSITION_LABELS, stockEffect } from "@/lib/domain/orders";
 import type { Order, OrderStatus, PaymentStatus } from "@/lib/domain/types";
 import { deleteOrderAction, transitionOrderAction, updateOrderAction } from "@/server/actions/admin";
+import styles from "./admin.module.css";
 import { ConfirmButton, Modal, TextAreaField, useToast } from "./ui";
 
 /** The buttons that move an order along, with a note for the history. */
@@ -39,7 +40,7 @@ export function OrderStatusActions({ order }: { order: Order }) {
 
   return (
     <>
-      <div className="flex flex-wrap gap-2">
+      <div className={styles.flexWrapGap2}>
         {next.map((status) => {
           const destructive = status === "cancelled" || status === "discarded";
           return (
@@ -77,20 +78,20 @@ export function OrderStatusActions({ order }: { order: Order }) {
         }
       >
         {target && (
-          <div className="space-y-4 text-sm">
-            <p className="text-ink-2">{ORDER_STATUS_META[target].description}</p>
+          <div className={styles.stack4}>
+            <p className={styles.mutedText}>{ORDER_STATUS_META[target].description}</p>
             {target === "received" && order.channel === "whatsapp" && order.status !== "cancelled" && (
-              <p className="rounded-[10px] bg-warning-soft px-3 py-2 text-warning">
+              <p className={styles.modalNoticeWarning}>
                 Only continue if you have the WhatsApp message for order #{order.number} in your chats.
               </p>
             )}
             {effect === 1 && (
-              <p className="rounded-[10px] bg-canvas px-3 py-2">
+              <p className={styles.modalNoticeNeutral}>
                 Confirming takes these items out of stock (for products that track inventory).
               </p>
             )}
             {effect === -1 && (
-              <p className="rounded-[10px] bg-canvas px-3 py-2">The items reserved for this order go back into stock.</p>
+              <p className={styles.modalNoticeNeutral}>The items reserved for this order go back into stock.</p>
             )}
             <TextAreaField
               label="Note for the order history"
@@ -121,7 +122,7 @@ export function PaymentStatusControl({ order }: { order: Order }) {
     } else toast("danger", result.error);
   };
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className={styles.flexWrapGap2}>
       {order.paymentStatus !== "paid" && (
         <button type="button" disabled={busy} onClick={() => set("paid")} className={buttonClass({ variant: "dark", size: "sm" })}>
           Mark as paid
@@ -175,7 +176,7 @@ export function InternalNote({ order }: { order: Order }) {
               router.refresh();
             } else toast("danger", result.error);
           }}
-          className={buttonClass({ variant: "dark", size: "sm", className: "mt-2" })}
+          className={buttonClass({ variant: "dark", size: "sm", className: styles.mt2 })}
         >
           {busy ? "Saving…" : "Save note"}
         </button>
@@ -192,7 +193,7 @@ export function DeleteOrderButton({ order }: { order: Order }) {
     <ConfirmButton
       size="sm"
       variant="ghost"
-      className="text-danger"
+      className={styles.dangerTextBtn}
       title={`Delete order #${order.number}?`}
       description="The order and its customer details are removed for good. Only cancelled orders and unverified WhatsApp handoffs can be deleted — confirmed sales are kept for your records."
       confirmLabel="Delete order"

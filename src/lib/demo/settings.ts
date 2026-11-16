@@ -63,7 +63,7 @@ export const DEMO_SETTINGS: SettingsInput = {
     areas: "",
   },
   theme: {
-    accent: "#0F4C5C",
+    accent: "#C41E3A",
     fontPairing: "signage",
     corners: "soft",
   },

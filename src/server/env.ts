@@ -48,20 +48,10 @@ export function supabaseConfig(): SupabaseConfig | null {
   };
 }
 
-const SUPABASE_VARIABLES = [
-  "SUPABASE_URL",
-  "SUPABASE_PUBLISHABLE_KEY",
-  "SUPABASE_ANON_KEY",
-  "SUPABASE_SECRET_KEY",
-  "SUPABASE_SERVICE_ROLE_KEY",
-];
-
 export function backendKind(): BackendKind {
   const explicit = read("STORE_BACKEND");
   if (explicit === "local" || explicit === "supabase") return explicit;
-  // Any Supabase setting means Supabase is intended: a missing piece is then
-  // reported as a setup problem, never papered over with local files.
-  return SUPABASE_VARIABLES.some((name) => read(name)) ? "supabase" : "local";
+  return "local";
 }
 
 /**
