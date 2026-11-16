@@ -51,10 +51,14 @@ export async function rateLimit(
         if (!error && row && typeof row.allowed === "boolean") {
           return { ok: row.allowed, retryAfterMs: Number(row.retry_after_ms ?? 0) };
         }
+        if (error) {
+          console.error("[rate-limit] Supabase RPC returned error, falling back to local memory limit:", error.message);
+        }
       } catch (error) {
-        console.warn("[rate-limit] Supabase RPC unavailable, falling back to memory:", error);
+        console.error("[rate-limit] Supabase RPC execution threw exception, falling back to local memory limit:", error);
       }
     }
   }
   return rateLimitInMemory(key, limit, windowMs);
 }
+

@@ -57,26 +57,24 @@ Open <http://localhost:3000> — that's the Halden demo store. Nothing to config
 
 4. Stop `npm run dev` (Ctrl+C), start it again, and sign in at <http://localhost:3000/admin>.
 
-### 3. Deploy to Hostinger
+### 3. Deploy to Vercel
 
-1. Put the project on your own GitHub repository.
-2. In hPanel: **Websites** → **Add Website** → **Web App**.
-3. Choose a domain — your own, or the free **Temporary Domain** (you can connect your own later).
-4. Choose **Import Git Repository**, connect GitHub if asked, and select your repository on the **main** branch.
-5. Hostinger detects **Next.js** and fills in the build settings — keep them. Node.js 22 is recommended; another version Hostinger offers (20.9 or newer) works too.
-6. Under **Environment variables**, add these three, using exactly these names. Get the values from your Supabase project dashboard:
+1. **Connect your GitHub repository.** Import your repository into [Vercel](https://vercel.com).
+2. **Configure project settings.** Vercel automatically detects Next.js 16 and configures the default build settings (`npm run build`).
+3. **Set server environment variables.** In your Vercel project settings under **Environment Variables**, add your Supabase credentials and security secrets. **Never prefix these with `NEXT_PUBLIC_` — they are server-only secrets.**
 
    | Name | Where to copy it |
    | --- | --- |
-   | `SUPABASE_URL` | **Project URL**, from **Connect** or **Integrations → Data API** |
-   | `SUPABASE_PUBLISHABLE_KEY` | **Project Settings → API Keys** → **Publishable key** (`sb_publishable_…`) |
-   | `SUPABASE_SECRET_KEY` | **Project Settings → API Keys** → **Secret keys** (`sb_secret_…`) — keep it secret |
+   | `SUPABASE_URL` | Supabase Project URL (`https://your-project.supabase.co`) |
+   | `SUPABASE_PUBLISHABLE_KEY` | Supabase Publishable API key (`sb_publishable_…`) |
+   | `SUPABASE_SECRET_KEY` | Supabase Secret API key (`sb_secret_…`) — keep confidential |
+   | `SESSION_SECRET` | Recommended: A random 32+ character string for signing checkout tokens |
 
-   Use these current keys, not the **Legacy** anon/service_role ones. That's all the store needs. Hostinger may list other names it finds in the code; you don't need them ([what they are](docs/advanced-configuration.md)). Never paste the secret key into GitHub, a chat or an email, and don't show it if you're recording your screen. If something goes wrong, the same three values are in the `.env.local` file that `npm run setup` created in your project folder (open it in a text editor — Finder and Explorer hide files whose name starts with a dot).
+4. **Run database migrations.** Ensure your Supabase database has all migrations applied (via `npm run db:migrate` or by executing `supabase/migrations/*.sql` in the Supabase SQL editor).
+5. **Deploy.** Click **Deploy**. Vercel will build and publish your store.
+6. **Configure store URL.** Open `https://your-domain/admin`, sign in, and set **Settings → Store → Shop address** to your site's address.
 
-7. Click **Deploy**. When it finishes, open `https://your-domain/admin`, sign in, and set **Settings → Store → Shop address** to your site's address.
-
-Your store is live. Everything else — store name, logo, currency, WhatsApp number, checkout methods, delivery, colours, the homepage — is set in the dashboard.
+Preview deployments are automatically created for every pull request branch, allowing safe testing before merging to `main`.
 
 ---
 

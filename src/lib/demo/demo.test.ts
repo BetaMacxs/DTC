@@ -168,5 +168,60 @@ describe("Detail Corner starter settings & demo cleanup", () => {
     expect(cleanedFields).toContain("checkout.bankTransferInstructions");
     expect(detectDemoSettings(cleaned)).toEqual([]);
   });
+
+  it("converts Halden USD currency to ZAR and preserves custom shipping settings", () => {
+    const sample = demoSettings();
+    const customShipping = {
+      methods: [{ id: "custom", name: "Custom Courier", description: "", price: 150, requiresAddress: true }],
+      freeShippingThreshold: 1000,
+      areas: "South Africa only",
+    };
+    const settings = settingsSchema.parse({
+      ...sample,
+      store: { ...sample.store, currency: "USD" },
+      shipping: customShipping,
+    });
+
+    const { settings: cleaned, cleanedFields } = stripDemoSettings(settings);
+    expect(cleaned.store.currency).toBe("ZAR");
+    expect(cleanedFields).toContain("store.currency");
+    // Custom shipping is fully preserved
+    expect(cleaned.shipping.freeShippingThreshold).toBe(1000);
+    expect(cleaned.shipping.areas).toBe("South Africa only");
+    expect(cleaned.shipping.methods[0].name).toBe("Custom Courier");
+  });
+
+  it("selectively cleans hero fields while preserving custom hero text and custom images independently", () => {
+    const sample = demoSettings();
+    const customSettings = settingsSchema.parse({
+      ...sample,
+      homepage: {
+        ...sample.homepage,
+        hero: {
+          ...sample.homepage.hero,
+          heading: "My Custom Detail Store Heading",
+          imageUrl: "/demo/hero/hero-1.jpg", // matches demo
+          text: sample.homepage.hero.text, // matches demo
+          primaryLabel: "Custom Shop Now",
+        },
+      },
+    });
+
+    const { settings: cleaned } = stripDemoSettings(customSettings);
+    // Custom heading and custom button label survived
+    expect(cleaned.homepage.hero.heading).toBe("My Custom Detail Store Heading");
+    expect(cleaned.homepage.hero.primaryLabel).toBe("Custom Shop Now");
+    // Unchanged demo image and demo subtitle text were cleaned independently
+    expect(cleaned.homepage.hero.imageUrl).toBe("");
+    expect(cleaned.homepage.hero.text).toBe("");
+  });
+
+  it("ensures repeated cleanup is safe and produces no further changes", () => {
+    const sample = demoSettings();
+    const { settings: firstClean } = stripDemoSettings(sample);
+    const { cleanedFields: secondCleanFields } = stripDemoSettings(firstClean);
+    expect(secondCleanFields).toEqual([]);
+  });
 });
+
 

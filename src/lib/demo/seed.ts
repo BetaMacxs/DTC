@@ -90,6 +90,9 @@ export function detectDemoSettings(settings: StoreSettings): string[] {
   if (settings.store.name === sample.store.name || settings.store.description === sample.store.description) {
     hits.push("Store name/description (Halden)");
   }
+  if (settings.store.currency === "USD") {
+    hits.push("Demo currency (USD)");
+  }
   if (settings.contact.email === sample.contact.email) {
     hits.push("Demo contact email (hello@halden.example)");
   }
@@ -97,8 +100,17 @@ export function detectDemoSettings(settings: StoreSettings): string[] {
     hits.push("Demo bank transfer instructions");
   }
   if (
+    (settings.shipping.freeShippingThreshold === sample.shipping.freeShippingThreshold &&
+      JSON.stringify(settings.shipping.methods) === JSON.stringify(sample.shipping.methods)) ||
+    (settings.shipping.areas !== "" && settings.shipping.areas === sample.shipping.areas)
+  ) {
+    hits.push("Demo shipping configuration");
+  }
+  if (
     settings.homepage.hero.imageUrl === DEMO_HERO_IMAGE ||
     settings.homepage.hero.heading === sample.homepage.hero.heading ||
+    settings.homepage.hero.text === sample.homepage.hero.text ||
+    settings.homepage.hero.eyebrow === sample.homepage.hero.eyebrow ||
     settings.homepage.sections.some(
       (section) =>
         (section.type === "banner" && section.imageUrl === DEMO_GIFT_BANNER_IMAGE) ||
@@ -141,6 +153,10 @@ export function stripDemoSettings(settings: StoreSettings): { settings: StoreSet
     next.store.description = "";
     cleanedFields.push("store.description");
   }
+  if (next.store.currency === "USD") {
+    next.store.currency = starter.store.currency;
+    cleanedFields.push("store.currency");
+  }
   if (next.contact.email === sample.contact.email) {
     next.contact.email = "";
     cleanedFields.push("contact.email");
@@ -158,24 +174,70 @@ export function stripDemoSettings(settings: StoreSettings): { settings: StoreSet
     next.checkout.confirmationNote = "";
     cleanedFields.push("checkout.confirmationNote");
   }
-  if (JSON.stringify(next.shipping) === JSON.stringify(sample.shipping)) {
-    next.shipping = DEFAULT_SETTINGS.shipping;
-    cleanedFields.push("shipping");
+
+  // Granular shipping cleanup: preserve custom settings while cleaning unchanged demo shipping values
+  if (
+    next.shipping.freeShippingThreshold === sample.shipping.freeShippingThreshold &&
+    next.shipping.freeShippingThreshold !== DEFAULT_SETTINGS.shipping.freeShippingThreshold
+  ) {
+    next.shipping.freeShippingThreshold = DEFAULT_SETTINGS.shipping.freeShippingThreshold;
+    cleanedFields.push("shipping.freeShippingThreshold");
   }
-  if (next.homepage.announcement.text === sample.homepage.announcement.text) {
+  if (next.shipping.areas === sample.shipping.areas && next.shipping.areas !== DEFAULT_SETTINGS.shipping.areas) {
+    next.shipping.areas = DEFAULT_SETTINGS.shipping.areas;
+    cleanedFields.push("shipping.areas");
+  }
+  if (
+    JSON.stringify(next.shipping.methods) === JSON.stringify(sample.shipping.methods) &&
+    JSON.stringify(next.shipping.methods) !== JSON.stringify(DEFAULT_SETTINGS.shipping.methods)
+  ) {
+    next.shipping.methods = DEFAULT_SETTINGS.shipping.methods;
+    cleanedFields.push("shipping.methods");
+  }
+
+  if (
+    next.homepage.announcement.text === sample.homepage.announcement.text &&
+    next.homepage.announcement.text !== DEFAULT_SETTINGS.homepage.announcement.text
+  ) {
     next.homepage.announcement = { enabled: false, text: "", href: "" };
     cleanedFields.push("homepage.announcement");
   }
-  if (
-    next.homepage.hero.imageUrl === DEMO_HERO_IMAGE ||
-    next.homepage.hero.heading === sample.homepage.hero.heading
-  ) {
-    next.homepage.hero = {
-      ...starter.homepage.hero,
-      imageUrl: next.homepage.hero.imageUrl === DEMO_HERO_IMAGE ? "" : next.homepage.hero.imageUrl,
-    };
-    cleanedFields.push("homepage.hero");
+
+  // Granular hero cleanup: clean only fields that match sample demo values individually and differ from starter
+  const hero = next.homepage.hero;
+  if (hero.imageUrl === DEMO_HERO_IMAGE && hero.imageUrl !== starter.homepage.hero.imageUrl) {
+    hero.imageUrl = starter.homepage.hero.imageUrl;
+    cleanedFields.push("homepage.hero.imageUrl");
   }
+  if (hero.heading === sample.homepage.hero.heading && hero.heading !== starter.homepage.hero.heading) {
+    hero.heading = starter.homepage.hero.heading;
+    cleanedFields.push("homepage.hero.heading");
+  }
+  if (hero.text === sample.homepage.hero.text && hero.text !== starter.homepage.hero.text) {
+    hero.text = starter.homepage.hero.text;
+    cleanedFields.push("homepage.hero.text");
+  }
+  if (hero.eyebrow === sample.homepage.hero.eyebrow && hero.eyebrow !== starter.homepage.hero.eyebrow) {
+    hero.eyebrow = starter.homepage.hero.eyebrow;
+    cleanedFields.push("homepage.hero.eyebrow");
+  }
+  if (hero.primaryLabel === sample.homepage.hero.primaryLabel && hero.primaryLabel !== starter.homepage.hero.primaryLabel) {
+    hero.primaryLabel = starter.homepage.hero.primaryLabel;
+    cleanedFields.push("homepage.hero.primaryLabel");
+  }
+  if (hero.primaryHref === sample.homepage.hero.primaryHref && hero.primaryHref !== starter.homepage.hero.primaryHref) {
+    hero.primaryHref = starter.homepage.hero.primaryHref;
+    cleanedFields.push("homepage.hero.primaryHref");
+  }
+  if (hero.secondaryLabel === sample.homepage.hero.secondaryLabel && hero.secondaryLabel !== starter.homepage.hero.secondaryLabel) {
+    hero.secondaryLabel = starter.homepage.hero.secondaryLabel;
+    cleanedFields.push("homepage.hero.secondaryLabel");
+  }
+  if (hero.secondaryHref === sample.homepage.hero.secondaryHref && hero.secondaryHref !== starter.homepage.hero.secondaryHref) {
+    hero.secondaryHref = starter.homepage.hero.secondaryHref;
+    cleanedFields.push("homepage.hero.secondaryHref");
+  }
+
   const filteredSections = next.homepage.sections.filter((section) => {
     if (section.type === "banner" && section.imageUrl === DEMO_GIFT_BANNER_IMAGE) return false;
     if (section.type === "products" && section.collectionId === DEMO_DESK_COLLECTION_ID) return false;

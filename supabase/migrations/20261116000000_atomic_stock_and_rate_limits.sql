@@ -235,6 +235,11 @@ revoke all on function public.check_rate_limit(text, integer, integer) from publ
 grant execute on function public.check_rate_limit(text, integer, integer) to service_role;
 
 -- ------------------------------------------------------- POPIA order redaction
+-- NOTE: This function removes consumer personal identifiable information (name, phone,
+-- email, address, customer note) to support privacy principles (such as POPIA data
+-- minimization for closed orders). However, technical anonymisation alone does not
+-- constitute full legal POPIA compliance; organization data retention policies apply.
+-- Accounting records (totals, line items, order numbers) are preserved.
 
 create or replace function public.admin_anonymize_order(p_order_id uuid)
 returns jsonb
