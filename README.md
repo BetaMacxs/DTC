@@ -13,7 +13,7 @@ It opens as **Halden**, a fictional demo store with 30 products, so you can try 
 The production deployment uses GitHub, Vercel and Supabase. You do not need to run the application on your own computer.
 
 1. **Connect GitHub to Vercel.** In Vercel, import the `BetaMacxs/DTC` repository and select the branch you want to deploy.
-2. **Set the project configuration.** Vercel should detect Next.js automatically. Keep the build command as `npm run build` and the output settings at their defaults.
+2. **Set the project configuration.** Vercel should detect Next.js automatically. Keep the build command as `npm run build`, the output settings at their defaults, and set the Node.js version to `22.x` to match CI.
 3. **Add server environment variables** in Vercel → Project → Settings → Environment Variables:
 
    | Variable | Value |
