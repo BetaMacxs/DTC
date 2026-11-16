@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { MAX_CART_LINES, MAX_LINE_QUANTITY, type CartQuote } from "./cart";
-import { foldDigits } from "./phone";
-import { enabledCheckoutMethods, isValidWhatsAppNumber, type CheckoutMethod, type StoreSettings } from "./settings";
+import { foldDigits, isValidWhatsAppNumber } from "./phone";
+import { enabledCheckoutMethods, type CheckoutMethod, type StoreSettings } from "./settings";
 import type { Order, OrderEvent, OrderItem } from "./types";
 
 /**
