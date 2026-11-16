@@ -1,10 +1,10 @@
-# Halden — e-commerce starter
+# Detail Corner — ecommerce platform
 
-A complete small-business shop you can make your own: a fast storefront, a real admin dashboard, and checkout by **WhatsApp**, **cash on delivery** or **bank transfer** — for any kind of product. Next.js 16, React 19, Tailwind CSS 4 and Supabase.
+The Detail Corner ecommerce platform: a storefront, administrator dashboard, product catalogue, image management, store settings and checkout by **WhatsApp**, **cash on delivery** or **bank transfer**. Built with Next.js 16, React 19 and Supabase.
 
 Everything an owner changes day to day — products, photos, categories, prices, stock, delivery options, payment methods, the WhatsApp number, colours, fonts and the homepage — is edited in the dashboard. No code changes, no redeploys.
 
-It opens as **Halden**, a fictional demo store with 30 products, so you can try everything before adding your own. One click removes the demo.
+The repository includes optional sample catalogue content for testing. Remove the sample content before accepting real customer orders.
 
 ---
 
