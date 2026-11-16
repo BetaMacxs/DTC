@@ -121,7 +121,7 @@ Received ──▶ Confirmed ──▶ Fulfilled ──▶ Completed
 
 ### Real Supabase staging checks
 
-The GitHub Actions workflow can also test the real Supabase database, including competing stock reservations, shared rate limits, RLS permissions and browser checkout. It runs only on pushes to `main`, and only when the following repository secrets are configured:
+The GitHub Actions workflow can also test the real Supabase database, including competing stock reservations, shared rate limits, RLS permissions and browser checkout. It runs on pushes to `main` and can be started manually from Actions after the following repository secrets are configured:
 
 | GitHub repository secret | Purpose |
 | --- | --- |
