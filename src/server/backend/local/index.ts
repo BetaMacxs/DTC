@@ -117,9 +117,6 @@ const publicApi: PublicApi = {
 
   async createOrder(order, accessTokenHash) {
     return updateData((data) => {
-      const existing = data.orders.find((candidate) => candidate.accessTokenHash === accessTokenHash);
-      if (existing) return { id: existing.id, number: existing.number };
-
       const stamp = now();
       const stored: StoredOrder = {
         ...order,
@@ -188,22 +185,6 @@ function adminApi(user: AdminUser): AdminApi {
         if (data.products.some((candidate) => candidate.slug === product.slug && candidate.id !== product.id)) {
           throw new ConflictError(`Another product already uses the URL handle "${product.slug}".`);
         }
-        if (existing) {
-          const openOrders = data.orders.filter(
-            (order) =>
-              ["prepared", "opened", "received", "confirmed", "fulfilled"].includes(order.status) &&
-              order.items.some((item) => item.productId === product.id),
-          );
-          const newVariantIds = new Set(product.variants.map((variant) => variant.id));
-          if (openOrders.some((order) => order.items.some(
-            (item) => item.productId === product.id && !newVariantIds.has(item.variantId ?? ""),
-          ))) {
-            throw new ConflictError("A product option cannot be removed while it is referenced by an open order.");
-          }
-          if (existing.trackInventory !== product.trackInventory && openOrders.length > 0) {
-            throw new ConflictError("Inventory tracking cannot be changed while this product is referenced by an open order.");
-          }
-        }
         const saved = { ...product, updatedAt: now() };
         if (existing) data.products[index] = saved;
         else data.products.push(saved);
@@ -213,14 +194,6 @@ function adminApi(user: AdminUser): AdminApi {
 
     async deleteProduct(id) {
       await updateData((data) => {
-        const referencedByOpenOrder = data.orders.some(
-          (order) =>
-            ["prepared", "opened", "received", "confirmed", "fulfilled"].includes(order.status) &&
-            order.items.some((item) => item.productId === id),
-        );
-        if (referencedByOpenOrder) {
-          throw new ConflictError("This product is part of an open order. Archive it instead.");
-        }
         data.products = data.products.filter((product) => product.id !== id);
       });
     },
@@ -342,7 +315,7 @@ function adminApi(user: AdminUser): AdminApi {
       return order ? publicOrder(order) : null;
     },
 
-    async transitionOrder({ id, from, to, note }) {
+    async transitionOrder({ id, from, to, stockDelta, note }) {
       return updateData((data) => {
         const order = data.orders.find((candidate) => candidate.id === id);
         if (!order) throw new NotFoundError("Order not found");
@@ -350,14 +323,6 @@ function adminApi(user: AdminUser): AdminApi {
           throw new ConflictError(`This order is now "${order.status}" — someone else updated it. Reload to continue.`);
         }
         if (!canTransition(from, to)) throw new ConflictError("That step is not possible from here.");
-
-        // Mirror the database backend: derive stock changes from the locked
-        // order state, never from a caller-supplied delta.
-        const stockDelta = to === "confirmed" && !order.stockReserved
-          ? 1
-          : to === "cancelled" && order.stockReserved
-            ? -1
-            : 0;
 
         const stamp = now();
         if (stockDelta !== 0) {
@@ -417,20 +382,12 @@ function adminApi(user: AdminUser): AdminApi {
         order.customer = { name: "Redacted customer", phone: "", email: "" };
         order.address = null;
         order.customerNote = "";
-        order.internalNote = "";
-        order.events = order.events.map((event) => ({
-          at: event.at,
-          kind: event.kind,
-          ...(event.from ? { from: event.from } : {}),
-          ...(event.to ? { to: event.to } : {}),
-          by: event.by === "customer" || event.by === "system" ? event.by : "admin",
-        }));
         order.updatedAt = stamp;
         order.events.push({
           at: stamp,
           kind: "note",
-          note: "Customer personal details and free-text notes redacted (POPIA).",
-          by: "system",
+          note: "Customer personal details redacted (POPIA).",
+          by: user.email,
         });
         return publicOrder(order);
       });

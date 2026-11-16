@@ -22,8 +22,7 @@
     "test:watch": "vitest",
     "test:e2e": "npm run build && playwright test",
     "privacy:check": "node scripts/privacy-check.mjs",
-    "verify": "npm run typecheck && npm run lint && npm run test && npm run privacy:check && npm run build",
-    "test:staging": "node scripts/staging-concurrency.mjs"
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run privacy:check && npm run build"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",

@@ -101,24 +101,11 @@ function publicApi(config: SupabaseConfig): PublicApi {
     },
 
     async createOrder(order, accessTokenHash) {
-      const client = serviceClient(config);
-      const { data, error } = await client
+      const { data, error } = await serviceClient(config)
         .from("orders")
         .insert(fromNewOrder(order, accessTokenHash))
         .select("id, number")
         .single();
-
-      if (error?.code === "23505") {
-        // A retry with the same signed checkout token returns the first order
-        // instead of creating a duplicate.
-        const existing = await client
-          .from("orders")
-          .select("id, number")
-          .eq("access_token_hash", accessTokenHash)
-          .maybeSingle();
-        if (existing.error) fail(existing.error, "Finding the existing order");
-        if (existing.data) return { id: existing.data.id as string, number: Number(existing.data.number) };
-      }
       if (error) fail(error, "Saving the order");
       return { id: data.id as string, number: Number(data.number) };
     },

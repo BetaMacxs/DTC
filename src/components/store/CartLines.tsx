@@ -57,7 +57,7 @@ function CartLineRow({ line, compact }: { line: QuoteLine; compact: boolean }) {
             </Link>
             {line.variantLabel && <p className={styles.cartLineVariant}>{line.variantLabel}</p>}
           </div>
-          <p data-testid="cart-line-total" className={`price ${styles.cartLineTotal}`}>
+          <p className={`price ${styles.cartLineTotal}`}>
             {unavailable ? "—" : money(line.lineTotal, "full")}
           </p>
         </div>

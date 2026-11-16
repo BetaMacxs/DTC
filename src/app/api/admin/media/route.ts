@@ -21,17 +21,13 @@ export async function POST(request: Request) {
   // The public demo's dashboard preview can look, not upload.
   if (admin.preview) return Response.json({ error: new ReadOnlyPreviewError().message }, { status: 403 });
 
-  try {
-    if (!(await rateLimit(`upload:${await clientAddress()}`, 120, 10 * 60 * 1000)).ok) {
-      return Response.json({ error: "Too many uploads at once. Wait a minute and try again." }, { status: 429 });
-    }
-  } catch {
-    return Response.json({ error: "Uploads are temporarily unavailable. Please try again shortly." }, { status: 503 });
+  if (!(await rateLimit(`upload:${await clientAddress()}`, 120, 10 * 60 * 1000)).ok) {
+    return Response.json({ error: "Too many uploads at once. Wait a minute and try again." }, { status: 429 });
   }
 
   const length = Number(request.headers.get("content-length") ?? 0);
   if (length > MAX_UPLOAD_BYTES + 64 * 1024) {
-    return Response.json({ error: "That photo is too large (4 MB maximum)." }, { status: 413 });
+    return Response.json({ error: "That photo is too large (8 MB maximum)." }, { status: 413 });
   }
 
   let file: File | null = null;
@@ -44,7 +40,7 @@ export async function POST(request: Request) {
   }
   if (!file) return Response.json({ error: "No photo was attached." }, { status: 400 });
   if (file.size > MAX_UPLOAD_BYTES) {
-    return Response.json({ error: "That photo is too large (4 MB maximum)." }, { status: 413 });
+    return Response.json({ error: "That photo is too large (8 MB maximum)." }, { status: 413 });
   }
 
   const bytes = new Uint8Array(await file.arrayBuffer());

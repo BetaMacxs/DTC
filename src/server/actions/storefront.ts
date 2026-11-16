@@ -7,15 +7,12 @@ import {
   buildOrder,
   checkoutErrors,
   checkoutSchema,
-  productionCheckoutProblem,
   type CheckoutErrorCode,
   type CheckoutErrors,
 } from "@/lib/domain/checkout";
 import { isWhatsAppConfigured } from "@/lib/domain/settings";
 import { getBackend } from "@/server/backend";
-import { detectDemoSettings } from "@/lib/demo/seed";
-import { backendKind, isProduction, publicDemoMode } from "@/server/env";
-import { sha256 } from "@/server/crypto";
+import { randomToken, sha256 } from "@/server/crypto";
 import { checkFormToken } from "@/server/form-token";
 import { rateLimit } from "@/server/rate-limit";
 import { clientAddress } from "@/server/request";
@@ -66,34 +63,15 @@ export type PlaceOrderResult =
   | { ok: false; errors: CheckoutErrors; message?: "rate_limited" | "failed" | "cart_changed"; quote?: CartQuote };
 
 export async function placeOrderAction(raw: Record<string, unknown>): Promise<PlaceOrderResult> {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-    return { ok: false, errors: {}, message: "failed" };
-  }
-
   // Honeypot: a field people never see. Bots fill it; reply like a failure.
   if (typeof raw.company === "string" && raw.company.trim() !== "") {
     return { ok: false, errors: {}, message: "failed" };
   }
-
-  // Count every submission, including invalid tokens, so the token check
-  // cannot be used as a cheap unmetered endpoint.
-  try {
-    const limit = await rateLimit(`order:${await clientAddress()}`, 6, 10 * 60 * 1000);
-    if (!limit.ok) return { ok: false, errors: {}, message: "rate_limited" };
-  } catch (error) {
-    console.error("[checkout] shared rate limiting is unavailable:", error);
+  if (!(await checkFormToken(raw.formToken))) {
     return { ok: false, errors: {}, message: "failed" };
   }
-
-  const checkoutToken = typeof raw.formToken === "string" ? raw.formToken : "";
-  try {
-    if (!(await checkFormToken(checkoutToken))) {
-      return { ok: false, errors: {}, message: "failed" };
-    }
-  } catch (error) {
-    console.error("[checkout] form-token verification failed:", error);
-    return { ok: false, errors: {}, message: "failed" };
-  }
+  const limit = await rateLimit(`order:${await clientAddress()}`, 6, 10 * 60 * 1000);
+  if (!limit.ok) return { ok: false, errors: {}, message: "rate_limited" };
 
   const parsed = checkoutSchema.safeParse(raw);
   if (!parsed.success) {
@@ -107,43 +85,9 @@ export async function placeOrderAction(raw: Record<string, unknown>): Promise<Pl
 
   const input = parsed.data;
   // Fresh data, not the storefront cache: an order must use current prices.
-  let storefront;
-  try {
-    storefront = await getStorefrontFresh();
-  } catch (error) {
-    console.error("[checkout] current store data could not be loaded:", error);
-    return { ok: false, errors: {}, message: "failed" };
-  }
-  const { settings, catalog } = storefront;
-  if (backendKind() === "supabase" && isProduction() && !publicDemoMode()) {
-    const setupProblem = productionCheckoutProblem(settings);
-    const remainingDemoSettings = detectDemoSettings(settings);
-    const hasDemoCatalog =
-      catalog.products.some((item) => item.isDemo) ||
-      catalog.categories.some((item) => item.isDemo) ||
-      catalog.collections.some((item) => item.isDemo);
-    if (setupProblem || remainingDemoSettings.length > 0 || hasDemoCatalog) {
-      console.error("[checkout] live store setup is incomplete:", {
-        setupProblem,
-        remainingDemoSettings,
-        hasDemoCatalog,
-      });
-      return { ok: false, errors: {}, message: "failed" };
-    }
-  }
+  const { settings, catalog } = await getStorefrontFresh();
   const quote = quoteCart(input.lines, catalog.products, settings, input.shippingMethodId);
   const errors = checkoutErrors(input, settings, quote);
-  // In a live Supabase store, WhatsApp checkout must have a real destination.
-  // The local demo and explicit public-demo mode may still demonstrate the flow.
-  if (
-    input.method === "whatsapp" &&
-    !isWhatsAppConfigured(settings) &&
-    backendKind() === "supabase" &&
-    isProduction() &&
-    !publicDemoMode()
-  ) {
-    errors.method = "method_disabled";
-  }
   if (Object.keys(errors).length > 0) {
     return {
       ok: false,
@@ -157,9 +101,7 @@ export async function placeOrderAction(raw: Record<string, unknown>): Promise<Pl
     whatsappConfigured: isWhatsAppConfigured(settings),
   });
 
-  // The signed, per-render checkout token doubles as the idempotency key
-  // and private order-access token. The database enforces its uniqueness.
-  const token = checkoutToken;
+  const token = randomToken();
   try {
     const created = await getBackend().public.createOrder(order, sha256(token));
     return { ok: true, orderUrl: `/orders/${created.id}?key=${token}` };

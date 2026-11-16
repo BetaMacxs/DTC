@@ -121,19 +121,15 @@ async function initDetailCorner() {
   if (error) fail(`Could not read the store settings: ${error.message}`);
   const raw = (data?.data as Record<string, unknown>) ?? {};
   const blank = !data || Object.keys(raw).length === 0;
-  if (!blank && args.has("--detail-corner-if-blank")) {
-    console.log("Store settings already exist; left unchanged.");
-    return;
-  }
   if (!blank && !args.has("--force")) {
-    fail("Store settings already exist. Pass --force to overwrite with Detail Corner starter defaults, or use --detail-corner-if-blank to leave existing settings untouched.");
+    fail("Store settings already exist. Pass --force to overwrite with Detail Corner starter defaults, or edit in /admin/settings.");
   }
   const starter = detailCornerStarterSettings();
   const { error: writeError } = await supabase
     .from("store_settings")
     .upsert({ id: 1, data: starter }, { onConflict: "id" });
   if (writeError) fail(`Could not write Detail Corner starter settings: ${writeError.message}`);
-  console.log("✓ Detail Corner starter settings saved (ZAR currency, Crimson accent and signage typography).");
+  console.log("✓ Detail Corner starter settings saved (ZAR currency, Obsidian & Crimson theme).");
   console.log("  Still configure in /admin/settings: contact email/WhatsApp, shipping rates, bank details, VAT (if registered), hero photo & policies.");
 }
 
@@ -179,5 +175,5 @@ async function seed() {
 }
 
 if (args.has("--remove")) await remove();
-else if (args.has("--detail-corner") || args.has("--detail-corner-if-blank")) await initDetailCorner();
+else if (args.has("--detail-corner")) await initDetailCorner();
 else await seed();

@@ -10,8 +10,7 @@ import type { MediaUpload } from "@/server/backend/types";
  * header claim.
  */
 
-// Vercel Functions cap request bodies at 4.5 MB; leave room for multipart overhead.
-export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 
 export function sniffImage(bytes: Uint8Array): Pick<MediaUpload, "contentType" | "extension"> | null {
   const starts = (...signature: number[]) => signature.every((byte, index) => bytes[index] === byte);

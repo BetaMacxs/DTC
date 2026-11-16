@@ -16,7 +16,7 @@ export const SETUP_TOKEN = process.env.E2E_SETUP_TOKEN ?? "e2e-setup-token";
 export const STORAGE_STATE = "tests/.artifacts/owner.json";
 
 /** The name every test order is placed under, so a Supabase run can clean up after itself. */
-export const TEST_CUSTOMER = SUPABASE ? "Robin Tester E2E " + process.env.E2E_RUN_ID : "Robin Tester";
+export const TEST_CUSTOMER = "Robin Tester";
 
 /** Ofcom's range for drama: +44 7700 900000–900999 never reaches a real phone. */
 export const FICTIONAL_WHATSAPP = "+44 7700 900123";

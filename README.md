@@ -8,33 +8,92 @@ The repository includes optional sample catalogue content for testing. Remove th
 
 ---
 
-## Deploy to Vercel
+## Set up with Claude Desktop
 
-The production deployment uses GitHub, Vercel and Supabase. You do not need to run the application on your own computer.
+No coding needed: Claude does the setup with you and only stops when it needs your accounts, your password or your approval. You need free [Supabase](https://supabase.com) and [GitHub](https://github.com) accounts, a Hostinger plan with Node.js web apps (such as Business, Unlimited or Cloud), and the [Claude Desktop](https://claude.ai/download) app.
 
-1. **Connect GitHub to Vercel.** In Vercel, import the `BetaMacxs/DTC` repository and select the branch you want to deploy.
-2. **Set the project configuration.** Vercel should detect Next.js automatically. Keep the build command as `npm run build`, the output settings at their defaults, and set the Node.js version to `22.x` to match CI.
-3. **Add server environment variables** in Vercel → Project → Settings → Environment Variables:
+1. **Make your own copy.** At the top of this page, click **Use this template → Create a new repository**. Public is simplest — your keys and passwords never go into it — and private works too.
+2. **Bring it to your computer.** In Claude Desktop, open the **Code** tab, start a **Local** session and open your **Documents** folder. Ask Claude, with your new repository's address:
 
-   | Variable | Value |
+   > Clone https://github.com/your-name/your-store into this folder. If GitHub needs me to sign in, give me the command to run in the Terminal.
+
+   A public repository downloads straight away. For a private one, you run that command in the session's **Terminal** and sign in to GitHub there: on Windows in the browser window that opens; on a Mac, GitHub asks for your username and a password — paste a [personal access token](https://github.com/settings/personal-access-tokens/new) (only this repository, **Contents: Read and write**) instead of your GitHub password.
+3. **Open the new folder** in a new **Local** session and ask Claude: *Set up Halden for me* — or type `/halden-setup`.
+4. **Follow its instructions.** Claude checks your computer, connects a new Supabase project, shows you the store and its dashboard on your computer, then guides you through putting it online with Hostinger and checks the live store. When it asks you to type something yourself, use the **Terminal** button at the top of the Claude session. Your keys and password never go into the chat.
+
+Prefer to do it yourself? The three steps below are the same setup, by hand.
+
+---
+
+## Get your store online in three steps
+
+You need [Node.js](https://nodejs.org) 20.9 or newer and a free [Supabase](https://supabase.com) account — plus a Hostinger plan with Node.js hosting for step 3.
+
+### 1. Start it on your computer
+
+```bash
+npm install
+npm run dev
+```
+
+Open <http://localhost:3000> — that's the Halden demo store. Nothing to configure yet: until you connect Supabase, the store saves everything in a `.data/` folder on your computer.
+
+### 2. Connect Supabase
+
+1. Create a project at [supabase.com/dashboard](https://supabase.com/dashboard).
+2. Sign the Supabase CLI in — once per computer. It opens your browser:
+
+   ```bash
+   npx supabase login
+   ```
+
+3. Run the setup and answer its questions:
+
+   ```bash
+   npm run setup
+   ```
+
+   It prepares the database, saves your project's three keys in a file called `.env.local`, adds the 30 demo products, creates your admin account and turns off public sign-ups. Keys are never shown on screen, and you can run it again at any time.
+
+4. Stop `npm run dev` (Ctrl+C), start it again, and sign in at <http://localhost:3000/admin>.
+
+### 3. Deploy to Vercel
+
+1. **Connect your GitHub repository.** Import your repository into [Vercel](https://vercel.com).
+2. **Configure project settings.** Vercel automatically detects Next.js 16 and configures the default build settings (`npm run build`).
+3. **Set server environment variables.** In your Vercel project settings under **Environment Variables**, add your Supabase credentials and security secrets. **Never prefix these with `NEXT_PUBLIC_` — they are server-only secrets.**
+
+   | Name | Where to copy it |
    | --- | --- |
-   | `SUPABASE_URL` | Your production Supabase project URL |
-   | `SUPABASE_PUBLISHABLE_KEY` | Your production Supabase publishable API key |
-   | `SUPABASE_SECRET_KEY` | Your production Supabase secret API key (server-only) |
-   | `STORE_BACKEND` | `supabase` |
-   | `PUBLIC_DEMO_MODE` | `false` — real orders must be saved to Supabase |
-   | `SESSION_SECRET` | A securely generated random value of at least 32 characters |
+   | `SUPABASE_URL` | Supabase Project URL (`https://your-project.supabase.co`) |
+   | `SUPABASE_PUBLISHABLE_KEY` | Supabase Publishable API key (`sb_publishable_…`) |
+   | `SUPABASE_SECRET_KEY` | Supabase Secret API key (`sb_secret_…`) — keep confidential |
+   | `SESSION_SECRET` | Recommended: A random 32+ character string for signing checkout tokens |
 
-   Do not expose the Supabase secret key or session secret through a `NEXT_PUBLIC_` variable, commit them to GitHub, or paste them into source files. Never set `PUBLIC_DEMO_MODE=true` for the real store: that mode keeps orders in the shopper's browser instead of saving them to the database. Use the separate staging Supabase project for Vercel preview deployments.
+4. **Run database migrations.** Ensure your Supabase database has all migrations applied (via `npm run db:migrate` or by executing `supabase/migrations/*.sql` in the Supabase SQL editor).
+5. **Deploy.** Click **Deploy**. Vercel will build and publish your store.
+6. **Configure store URL.** Open `https://your-domain/admin`, sign in, and set **Settings → Store → Shop address** to your site's address.
 
-4. **Disable public account registration.** In Supabase → Authentication → Sign In / Providers, turn off **Allow new users to sign up**. Customers do not need accounts; only accounts you create should be able to access the dashboard.
-5. **Prepare the Supabase database.** Apply every file in `supabase/migrations/` in chronological filename order, once per migration, using the Supabase SQL Editor or the repository's migration workflow. Do not paste multiple migration files together as one SQL statement. Never run migrations against a production database until the changes have been reviewed and a backup/rollback plan is in place.
-6. **Initialize the Detail Corner defaults.** If you used `npm run setup`, this is done automatically when the settings row is blank. Otherwise, from the connected hosted development environment run `npm run db:seed -- --detail-corner-if-blank`. This sets the store name and ZAR currency without overwriting existing settings. If you do not have a script runner, set these values in the dashboard after creating the admin.
-7. **Create the first admin account.** In Supabase → Authentication → Users, add an owner user and confirm the email. Then run `select public.grant_admin('you@example.com');` in the SQL Editor, using that same email address.
-8. **Deploy.** Deploy the project from Vercel. Review the build result and Vercel runtime logs before treating the deployment as ready.
-9. **Configure the store.** Sign in to `/admin`, review the store settings, and set the canonical shop URL. Remove the demo catalogue and add your real products and licensed photos. Configure your business contact details, prices, delivery methods, privacy/terms/returns policies, VAT (if registered) and payment instructions before accepting orders.
+Preview deployments are automatically created for every pull request branch, allowing safe testing before merging to `main`.
 
-Keep a separate Supabase staging project for testing database changes, checkout and inventory behaviour. Do not run demo seed or end-to-end test workflows against production data.
+---
+
+## Contents
+
+1. [Set up with Claude Desktop](#set-up-with-claude-desktop)
+2. [Get your store online in three steps](#get-your-store-online-in-three-steps)
+3. [What you get](#what-you-get)
+4. [Your admin account](#your-admin-account)
+5. [How ordering works](#how-ordering-works)
+6. [More about Supabase](#more-about-supabase)
+7. [More about Hostinger](#more-about-hostinger)
+8. [Customize it](#customize-it)
+9. [How the code is organized](#how-the-code-is-organized)
+10. [Commands](#commands)
+11. [Tests](#tests)
+12. [Security and privacy](#security-and-privacy)
+13. [Troubleshooting](#troubleshooting)
+14. [Advanced configuration](docs/advanced-configuration.md)
 
 ---
 
@@ -68,23 +127,27 @@ Keep a separate Supabase staging project for testing database changes, checkout 
 
 ## Your admin account
 
-For a Vercel-hosted Supabase store, create the user in Supabase → Authentication → Users and confirm the email. Then run this in the Supabase SQL Editor, replacing the example email:
+`npm run setup` creates it. To add another admin, or reset a forgotten password:
+
+```bash
+npm run admin:create -- you@example.com
+```
+
+It asks for a password (nothing is shown while you type), creates the user in Supabase Auth and makes it an admin.
+
+Or by hand: Supabase → Authentication → Users → Add user (tick "Auto confirm"), then in the SQL Editor:
 
 ```sql
 select public.grant_admin('you@example.com');
 ```
 
-The user can now sign in at `/admin`. To add another admin, repeat those two steps.
-
-If you are running the project in a connected development environment with the Supabase CLI available, `npm run setup` can apply migrations and `npm run admin:create -- you@example.com` can create and grant an admin in one step.
-
-**On the local demo store**, open `/admin/setup` once to create its local owner account.
+**On the local store** (before you connect Supabase), open <http://localhost:3000/admin/setup> once to create the owner account.
 
 ---
 
 ## How ordering works
 
-Shoppers choose how to order at checkout. You decide which methods are offered (Settings → Checkout and payment). **There is no online card-payment gateway in this version.** Bank transfers, cash on delivery and WhatsApp orders are handled manually; confirm receipts externally and update payment status in the dashboard.
+Shoppers choose how to order at checkout. You decide which methods are offered (Settings → Checkout and payment).
 
 | Method | What the shopper does | What you see in Orders |
 | --- | --- | --- |
@@ -114,42 +177,38 @@ Received ──▶ Confirmed ──▶ Fulfilled ──▶ Completed
 
 ## More about Supabase
 
-- `npm run db:check` checks your project's security from the outside — what a shopper and a signed-in stranger can and can't do. It creates disposable probe records and users, removes them afterwards, and performs a same-value settings update to check write access. Run it against a dedicated staging project, not production. Set `DB_CHECK_CONFIRMATION=I_CONFIRM_THIS_IS_A_DISPOSABLE_STAGING_PROJECT` to enable it.
+- `npm run db:check` checks your project's security from the outside — what a shopper and a signed-in stranger can and can't do. It changes nothing.
 - After updating the starter, `npm run db:migrate` applies any new database changes.
 - `npm run db:seed` adds or restores the demo products; `npm run db:seed -- --remove` takes them out. You can also do both from **Settings → Demo content** in the dashboard.
 - To start over with a fresh demo store on the local store: `npm run demo:reset` (your current data is moved to `.data-backups/`, never deleted).
 
-### Real Supabase staging checks
-
-The GitHub Actions workflow can also test the real Supabase database, including competing stock reservations, shared rate limits, RLS permissions and browser checkout. It runs on pushes to `main` and can be started manually from Actions after the following repository secrets are configured:
-
-| GitHub repository secret | Purpose |
-| --- | --- |
-| `STAGING_SUPABASE_URL` | Dedicated staging Supabase project URL |
-| `STAGING_SUPABASE_PUBLISHABLE_KEY` | Staging publishable key |
-| `STAGING_SUPABASE_SECRET_KEY` | Staging secret key |
-| `STAGING_ADMIN_EMAIL` | Existing staging admin email |
-| `STAGING_ADMIN_PASSWORD` | Staging admin password |
-| `STAGING_TESTS_CONFIRMATION` | Must equal `I_CONFIRM_THIS_IS_A_DISPOSABLE_STAGING_PROJECT` |
-
-Apply the migrations to the staging project in order, create its admin and grant admin access before adding these secrets. The browser suite resets the staging demo settings and catalogue after running. Use a disposable staging project with no real customer data; never put production credentials in these secrets.
-
-
 <details>
 <summary><strong>Without the CLI</strong></summary>
 
-1. In Supabase → SQL Editor, run each migration file separately, in this exact chronological order:
-   - [`20261026000000_storefront_schema.sql`](supabase/migrations/20261026000000_storefront_schema.sql)
-   - [`20261116000000_atomic_stock_and_rate_limits.sql`](supabase/migrations/20261116000000_atomic_stock_and_rate_limits.sql)
-   - [`20261116050000_complete_order_anonymisation.sql`](supabase/migrations/20261116050000_complete_order_anonymisation.sql)
-   - [`20261117000000_derive_order_stock_effect.sql`](supabase/migrations/20261117000000_derive_order_stock_effect.sql)
+1. In Supabase → SQL Editor → New query, paste the whole of [`supabase/migrations/20261026000000_storefront_schema.sql`](supabase/migrations/20261026000000_storefront_schema.sql) and click Run. It is safe to run again.
+2. In Supabase → Project Settings → API keys, copy the keys into `.env.local` (see [`.env.example`](.env.example)):
 
-   Run one file at a time. Do not combine the SQL files into one query. Each migration is designed to be safe to re-run.
-2. In Supabase → Authentication → Sign In / Providers, turn off **Allow new users to sign up**.
-3. Add the first owner in Supabase → Authentication → Users and confirm the email. Then run `select public.grant_admin('you@example.com');` in the SQL Editor, using the same email.
-4. Add `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` and `SUPABASE_SECRET_KEY` to the hosting provider's server-side environment variables. See [`.env.example`](.env.example) for the names. Never expose the secret key through a `NEXT_PUBLIC_` variable.
+   ```bash
+   SUPABASE_URL=https://your-project.supabase.co
+   SUPABASE_PUBLISHABLE_KEY=sb_publishable_…
+   SUPABASE_SECRET_KEY=sb_secret_…
+   ```
+
+3. Create your admin account (see [Your admin account](#your-admin-account)), sign in, and use **Settings → Demo content → Add demo content** for the sample products.
+4. In Supabase → Authentication → Sign In / Providers, turn off "Allow new users to sign up".
 
 </details>
+
+---
+
+## More about Hostinger
+
+- Any Hostinger plan with Node.js web apps (such as Business, Unlimited or Cloud) runs the store. Choose **Node.js 20 or 22**; the start command is `npm start` if you're asked for one. Menu names in hPanel may differ slightly between plans.
+- Connect your domain and turn on SSL in hPanel.
+- If you connected Supabase through Hostinger's database wizard, it has already added `SUPABASE_URL` and `SUPABASE_ANON_KEY` (the older name of the publishable key, which also works) — add `SUPABASE_SECRET_KEY` yourself.
+- The build uses webpack (`next build --webpack`), which works on build machines where Turbopack's native binary can't load.
+- Photos you upload are stored in Supabase Storage. If your Supabase project uses a custom domain, set `SUPABASE_URL` to it **before building** — the image settings read it at build time.
+- Run `npm run verify` before every deploy: it type-checks, lints, runs the tests and the privacy check, and builds.
 
 ---
 

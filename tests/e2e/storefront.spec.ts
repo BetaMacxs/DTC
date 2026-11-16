@@ -49,7 +49,7 @@ test.describe("shopping", () => {
     await addToBag(page, "canvas-tote");
     await page.goto("/cart");
     await expect(page.getByRole("heading", { name: "Canvas Tote" }).or(page.getByText("Canvas Tote").first())).toBeVisible();
-    await expect(page.getByTestId("cart-line-total")).toContainText(/24(?:\.00)?/);
+    await expect(page.getByText("$24").first()).toBeVisible();
     await expect(page.getByTestId("cart-button")).toContainText("1");
   });
 

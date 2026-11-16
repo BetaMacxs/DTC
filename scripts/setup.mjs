@@ -8,10 +8,9 @@
  * It asks which project to use, then:
  *   1. creates the database: tables, security rules, the photo bucket
  *   2. writes the project's address and keys to .env.local
- *   3. initializes Detail Corner starter settings, without overwriting existing settings
- *   4. adds the 30 demo products (optional)
- *   5. creates your admin account
- *   6. turns off public sign-ups (the shop has no customer accounts)
+ *   3. adds the 30 demo products (optional)
+ *   4. creates your admin account
+ *   5. turns off public sign-ups (the shop has no customer accounts)
  *
  * Every step is safe to run again. Keys are written to .env.local and never
  * shown on screen. Options (for scripting):
@@ -110,21 +109,9 @@ if (!publishable || !secret || /·|\*/.test(secret)) {
 writeEnvLocal({ SUPABASE_URL: url, SUPABASE_PUBLISHABLE_KEY: publishable, SUPABASE_SECRET_KEY: secret });
 console.log("   ✓ SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY and SUPABASE_SECRET_KEY are in .env.local (never commit this file).");
 
-/* ---------------------------------------------------------- 3. store defaults */
+/* -------------------------------------------------------------------- 3. demo */
 
-step(3, "Initializing Detail Corner starter settings if the store is blank…");
-const starterCode = await runNode([
-  "--conditions=react-server",
-  "--import",
-  "tsx",
-  "scripts/seed.mts",
-  "--detail-corner-if-blank",
-]);
-if (starterCode !== 0) fail("The Detail Corner starter settings could not be initialized (see the message above).");
-
-/* -------------------------------------------------------------------- 4. demo */
-
-step(4, "The 30 demo products (you can remove them later in one click).");
+step(3, "The 30 demo products (you can remove them later in one click).");
 if (!flag("--no-demo") && (await confirm("   Add them?", true))) {
   const code = await runNode(["--conditions=react-server", "--import", "tsx", "scripts/seed.mts"]);
   if (code !== 0) fail("The demo products could not be added (see the message above).");
@@ -132,23 +119,23 @@ if (!flag("--no-demo") && (await confirm("   Add them?", true))) {
   console.log("   Skipped. Add them any time with `npm run db:seed`.");
 }
 
-/* ------------------------------------------------------------------- 5. admin */
+/* ------------------------------------------------------------------- 4. admin */
 
 const adminEmail = option("--admin-email") ?? env("ADMIN_EMAIL");
 if (flag("--no-admin")) {
-  step(5, "Admin account: skipped. Create it any time with `npm run admin:create -- you@example.com`.");
+  step(4, "Admin account: skipped. Create it any time with `npm run admin:create -- you@example.com`.");
 } else if (adminEmail || !auto) {
-  step(5, "Your admin account — the login for the dashboard at /admin.");
+  step(4, "Your admin account — the login for the dashboard at /admin.");
   const email = adminEmail ?? (await ask("   Your email: ")).trim();
   const code = await runNode(["scripts/create-admin.mjs", email]);
   if (code !== 0) fail("The admin account was not created (see the message above). Fix it and run `npm run setup` again.");
 } else {
-  step(5, "Admin account: run `npm run admin:create -- you@example.com` to create it.");
+  step(4, "Admin account: run `npm run admin:create -- you@example.com` to create it.");
 }
 
 /* --------------------------------------------------------------- 5. sign-ups */
 
-step(6, "Public sign-ups (the shop has no customer accounts; only admins you create can sign in).");
+step(5, "Public sign-ups (the shop has no customer accounts; only admins you create can sign in).");
 if (await confirm("   Turn them off? (recommended)", true)) {
   const result = await supabase(["config", "push", "--project-ref", ref, "--yes"], { capture: true });
   if (result.code === 0) console.log("   ✓ Public sign-ups are off.");

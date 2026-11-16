@@ -159,7 +159,7 @@ export default async function OverviewPage() {
         >
           <div className={styles.salesTotals}>
             <div>
-              <p data-testid="sales-total" className={`price ${styles.salesPrimary}`}>{formatMoney(metrics.salesTotal, money, "full")}</p>
+              <p className={`price ${styles.salesPrimary}`}>{formatMoney(metrics.salesTotal, money, "full")}</p>
               <p className={styles.salesSub}>
                 {metrics.salesCount} {metrics.salesCount === 1 ? "order" : "orders"}
               </p>

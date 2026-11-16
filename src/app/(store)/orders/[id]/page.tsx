@@ -25,10 +25,7 @@ import { getStorefront } from "@/server/storefront";
  * bookmark the page to follow the order.
  */
 
-export const metadata: Metadata = {
-  robots: { index: false, follow: false },
-  referrer: "no-referrer",
-};
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -36,7 +33,7 @@ type Props = {
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const KEY = /^(?:[A-Za-z0-9_-]{20,128}|\d{10,16}\.[A-Za-z0-9_-]{20,32}\.[A-Za-z0-9_-]{40,64})$/;
+const KEY = /^[A-Za-z0-9_-]{20,128}$/;
 
 async function findOrder(id: string, key: string | undefined): Promise<Order | null> {
   if (!UUID.test(id) || !key || !KEY.test(key)) return null;

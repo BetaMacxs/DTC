@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { MAX_CART_LINES, MAX_LINE_QUANTITY, type CartQuote } from "./cart";
-import { foldDigits, isValidWhatsAppNumber } from "./phone";
-import { DEFAULT_SETTINGS, enabledCheckoutMethods, type CheckoutMethod, type StoreSettings } from "./settings";
+import { foldDigits } from "./phone";
+import { enabledCheckoutMethods, type CheckoutMethod, type StoreSettings } from "./settings";
 import type { Order, OrderEvent, OrderItem } from "./types";
 
 /**
@@ -93,9 +93,6 @@ export function checkoutErrors(
   if (!enabledCheckoutMethods(settings).includes(input.method as CheckoutMethod)) {
     errors.method = "method_disabled";
   }
-  if (input.method === "bank_transfer" && !settings.checkout.bankTransferInstructions.trim()) {
-    errors.method = "method_disabled";
-  }
 
   const shipping = settings.shipping.methods.find((method) => method.id === input.shippingMethodId);
   if (!shipping) errors.shippingMethodId = "shipping_required";
@@ -115,41 +112,6 @@ export function checkoutErrors(
   else if (quote.hasIssues) errors.form = "cart_changed";
 
   return errors;
-}
-
-/**
- * A live Supabase store must not accept orders while it still has starter
- * placeholders. This is intentionally separate from demo/local checkout.
- */
-export function productionCheckoutProblem(settings: StoreSettings): "store_name" | "contact" | "privacy_policy" | "shipping" | null {
-  if (settings.store.name.trim().toLowerCase() === "my store") return "store_name";
-
-  const email = settings.contact.email.trim().toLowerCase();
-  const placeholderEmail =
-    email.endsWith(".example") || /@(example\.com|example\.net|example\.org)$/.test(email);
-  const hasRealContact =
-    isPlausiblePhone(settings.contact.phone) ||
-    isValidWhatsAppNumber(settings.contact.whatsapp) ||
-    (email.length > 0 && !placeholderEmail);
-  if (!hasRealContact) return "contact";
-  if (!settings.policies.privacy.trim()) return "privacy_policy";
-
-  const defaultShipping = DEFAULT_SETTINGS.shipping.methods[0];
-  const placeholderDescriptions = new Set([
-    defaultShipping.description,
-    "We'll confirm the delivery cost and timing.",
-  ]);
-  const hasPlaceholderShipping = settings.shipping.methods.some(
-    (method) =>
-      method.id === defaultShipping.id &&
-      method.name === defaultShipping.name &&
-      placeholderDescriptions.has(method.description) &&
-      method.price === defaultShipping.price &&
-      method.requiresAddress === defaultShipping.requiresAddress,
-  );
-  if (settings.shipping.methods.length === 0 || hasPlaceholderShipping) return "shipping";
-
-  return null;
 }
 
 /* -------------------------------------------------------------- the order */

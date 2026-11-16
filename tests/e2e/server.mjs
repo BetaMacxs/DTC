@@ -23,16 +23,6 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const port = process.env.E2E_PORT ?? "3311";
 const supabase = process.env.E2E_BACKEND === "supabase";
 
-const stagingConfirmation = "I_CONFIRM_THIS_IS_A_DISPOSABLE_STAGING_PROJECT";
-if (supabase && process.env.E2E_SUPABASE_CONFIRMATION !== stagingConfirmation) {
-  console.error("Refusing to run Supabase E2E tests without explicit confirmation of a disposable staging project.");
-  process.exit(1);
-}
-if (supabase && !process.env.E2E_RUN_ID) {
-  console.error("E2E_BACKEND=supabase also requires a unique E2E_RUN_ID for safe test-order cleanup.");
-  process.exit(1);
-}
-
 if (!existsSync(path.join(root, ".next", "BUILD_ID"))) {
   console.error("No production build found. Run `npm run build` first (npm run test:e2e does).");
   process.exit(1);
