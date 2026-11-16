@@ -13,9 +13,16 @@ describe("live store readiness", () => {
     const noContact = parseSettings({ store: { name: "Detail Corner" } });
     expect(productionCheckoutProblem(noContact)).toBe("contact");
 
+    const noPrivacyPolicy = parseSettings({
+      store: { name: "Detail Corner" },
+      contact: { email: "hello@detailcorner.co.za" },
+    });
+    expect(productionCheckoutProblem(noPrivacyPolicy)).toBe("privacy_policy");
+
     const noShipping = parseSettings({
       store: { name: "Detail Corner" },
       contact: { email: "hello@detailcorner.co.za" },
+      policies: { privacy: "We explain how customer information is used." },
       shipping: {
         methods: [{
           id: "delivery",
@@ -33,6 +40,7 @@ describe("live store readiness", () => {
     const configured = parseSettings({
       store: { name: "Detail Corner" },
       contact: { email: "hello@detailcorner.co.za" },
+      policies: { privacy: "We explain how customer information is used." },
       shipping: {
         methods: [{
           id: "free-delivery",
