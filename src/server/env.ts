@@ -75,10 +75,26 @@ export function backendProblem(): string | null {
   if (explicit && explicit !== "local" && explicit !== "supabase") {
     return `Invalid STORE_BACKEND "${explicit}". Use "supabase" or "local".`;
   }
+  const configuredSessionSecret = read("SESSION_SECRET");
+  if (configuredSessionSecret && configuredSessionSecret.length < 32) {
+    return "SESSION_SECRET must contain at least 32 characters. Use a securely generated random value.";
+  }
+
   if (backendKind() === "supabase") {
     const config = supabaseConfig();
     if (!config) {
       return "Supabase is partially configured. Set both SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY (or SUPABASE_ANON_KEY) in the server's environment variables.";
+    }
+    try {
+      const parsedUrl = new URL(config.url);
+      if (!["https:", "http:"].includes(parsedUrl.protocol) || parsedUrl.username || parsedUrl.password) {
+        return "SUPABASE_URL must be a valid HTTP(S) project URL without embedded credentials.";
+      }
+      if (isProduction() && parsedUrl.protocol !== "https:") {
+        return "SUPABASE_URL must use HTTPS in production.";
+      }
+    } catch {
+      return "SUPABASE_URL is not a valid project URL.";
     }
     if (isProduction() && !config.secretKey) {
       return "SUPABASE_SECRET_KEY (or SUPABASE_SERVICE_ROLE_KEY) is required in production so checkout orders can be saved securely.";
