@@ -176,3 +176,37 @@ $$;
 
 revoke all on function public.admin_transition_order(uuid, text, text, integer, text) from public, anon;
 grant execute on function public.admin_transition_order(uuid, text, text, integer, text) to authenticated;
+
+-- A product must remain available while an order that references it is still
+-- awaiting fulfilment. Archiving is safe; hard deletion would make the order
+-- impossible to confirm or fulfil and could strand inventory.
+create or replace function public.prevent_product_delete_with_open_orders()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if exists (
+    select 1
+      from public.orders o
+     where o.status in ('received', 'confirmed', 'fulfilled')
+       and exists (
+         select 1
+           from jsonb_array_elements(o.items) as item
+          where item ->> 'productId' = old.id::text
+       )
+  ) then
+    raise exception 'This product is part of an open order. Archive it instead.'
+      using errcode = 'P0001';
+  end if;
+  return old;
+end;
+$$;
+
+revoke all on function public.prevent_product_delete_with_open_orders() from public, anon, authenticated;
+
+drop trigger if exists prevent_product_delete_with_open_orders on public.products;
+create trigger prevent_product_delete_with_open_orders
+before delete on public.products
+for each row execute function public.prevent_product_delete_with_open_orders();
