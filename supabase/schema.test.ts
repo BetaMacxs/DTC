@@ -335,9 +335,9 @@ describe("an admin", () => {
 
 describe("the website's server (secret key)", () => {
   it("rejects duplicate checkout idempotency tokens", async () => {
-    await insertOrder("received", [], "one-checkout-token-hash");
+    await insertOrder("received", [{ productId: PRODUCT, variantId: "v-black", quantity: 1 }], "one-checkout-token-hash");
     expect(
-      await failure(insertOrder("received", [], "one-checkout-token-hash")),
+      await failure(insertOrder("received", [{ productId: PRODUCT, variantId: "v-black", quantity: 1 }], "one-checkout-token-hash")),
     ).toMatch(/duplicate key|unique constraint/i);
   });
 
