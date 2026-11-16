@@ -21,8 +21,12 @@ export async function POST(request: Request) {
   // The public demo's dashboard preview can look, not upload.
   if (admin.preview) return Response.json({ error: new ReadOnlyPreviewError().message }, { status: 403 });
 
-  if (!(await rateLimit(`upload:${await clientAddress()}`, 120, 10 * 60 * 1000)).ok) {
-    return Response.json({ error: "Too many uploads at once. Wait a minute and try again." }, { status: 429 });
+  try {
+    if (!(await rateLimit(`upload:${await clientAddress()}`, 120, 10 * 60 * 1000)).ok) {
+      return Response.json({ error: "Too many uploads at once. Wait a minute and try again." }, { status: 429 });
+    }
+  } catch {
+    return Response.json({ error: "Uploads are temporarily unavailable. Please try again shortly." }, { status: 503 });
   }
 
   const length = Number(request.headers.get("content-length") ?? 0);
