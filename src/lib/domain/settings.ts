@@ -352,7 +352,7 @@ export type CheckoutMethod = "whatsapp" | "cod" | "bank_transfer";
 export function enabledCheckoutMethods(settings: StoreSettings): CheckoutMethod[] {
   const methods: CheckoutMethod[] = [];
   if (settings.checkout.cashOnDelivery) methods.push("cod");
-  if (settings.checkout.bankTransfer) methods.push("bank_transfer");
+  if (settings.checkout.bankTransfer && settings.checkout.bankTransferInstructions.trim()) methods.push("bank_transfer");
   if (settings.checkout.whatsapp) methods.push("whatsapp");
   return methods;
 }
