@@ -27,9 +27,10 @@ The production deployment uses GitHub, Vercel and Supabase. You do not need to r
 
 4. **Disable public account registration.** In Supabase → Authentication → Sign In / Providers, turn off **Allow new users to sign up**. Customers do not need accounts; only accounts you create should be able to access the dashboard.
 5. **Prepare the Supabase database.** Apply every file in `supabase/migrations/` in chronological filename order, once per migration, using the Supabase SQL Editor or the repository's migration workflow. Do not paste multiple migration files together as one SQL statement. Never run migrations against a production database until the changes have been reviewed and a backup/rollback plan is in place.
-6. **Create the first admin account.** In Supabase → Authentication → Users, add an owner user and confirm the email. Then run `select public.grant_admin('you@example.com');` in the SQL Editor, using that same email address.
-7. **Deploy.** Deploy the project from Vercel. Review the build result and Vercel runtime logs before treating the deployment as ready.
-8. **Configure the store.** Sign in to `/admin`, review the store settings, and set the canonical shop URL. Add your real business contact details, products, prices, delivery methods, policies and payment instructions before accepting orders.
+6. **Initialize the Detail Corner defaults.** If you used `npm run setup`, this is done automatically when the settings row is blank. Otherwise, from the connected hosted development environment run `npm run db:seed -- --detail-corner-if-blank`. This sets the store name and ZAR currency without overwriting existing settings. If you do not have a script runner, set these values in the dashboard after creating the admin.
+7. **Create the first admin account.** In Supabase → Authentication → Users, add an owner user and confirm the email. Then run `select public.grant_admin('you@example.com');` in the SQL Editor, using that same email address.
+8. **Deploy.** Deploy the project from Vercel. Review the build result and Vercel runtime logs before treating the deployment as ready.
+9. **Configure the store.** Sign in to `/admin`, review the store settings, and set the canonical shop URL. Add your real business contact details, products, prices, delivery methods, policies and payment instructions before accepting orders.
 
 Keep a separate Supabase staging project for testing database changes, checkout and inventory behaviour. Do not run demo seed or end-to-end test workflows against production data.
 
