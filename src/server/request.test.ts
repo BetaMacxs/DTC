@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("server-only", () => ({}));
+
 const { headersMock } = vi.hoisted(() => ({ headersMock: vi.fn() }));
 vi.mock("next/headers", () => ({ headers: headersMock }));
 
