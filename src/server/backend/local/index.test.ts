@@ -64,6 +64,8 @@ describe("local backend production-safety parity", () => {
       events: [{ at: new Date().toISOString(), kind: "created", by: "customer", note: "Private delivery instructions" }],
     };
     const created = await backend.public.createOrder(order, "access-hash");
+    const retried = await backend.public.createOrder(order, "access-hash");
+    expect(retried).toEqual(created);
 
     const confirmed = await admin.transitionOrder({
       id: created.id,
