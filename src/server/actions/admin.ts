@@ -131,6 +131,13 @@ const ownerSchema = z
   .refine((value) => value.password === value.confirm, { message: "The passwords don't match", path: ["confirm"] });
 
 export async function createOwnerAction(_previous: unknown, form: FormData): Promise<{ error?: string }> {
+  try {
+    const limit = await rateLimit(`owner-setup:${await clientAddress()}`, 5, 15 * 60 * 1000);
+    if (!limit.ok) return { error: "Too many setup attempts. Wait a few minutes and try again." };
+  } catch {
+    return { error: "Account setup is temporarily unavailable. Please try again shortly." };
+  }
+
   const backend = getBackend();
   const state = await backend.auth.setupState();
   if (state.kind !== "needs-owner") return { error: "This store already has an owner. Sign in instead." };
