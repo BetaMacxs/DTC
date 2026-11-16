@@ -18,19 +18,21 @@ The production deployment uses GitHub, Vercel and Supabase. You do not need to r
 
    | Variable | Value |
    | --- | --- |
-   | `SUPABASE_URL` | Your Supabase project URL |
-   | `SUPABASE_PUBLISHABLE_KEY` | Your Supabase publishable API key |
-   | `SUPABASE_SECRET_KEY` | Your Supabase secret API key (server-only) |
+   | `SUPABASE_URL` | Your production Supabase project URL |
+   | `SUPABASE_PUBLISHABLE_KEY` | Your production Supabase publishable API key |
+   | `SUPABASE_SECRET_KEY` | Your production Supabase secret API key (server-only) |
+   | `STORE_BACKEND` | `supabase` |
+   | `PUBLIC_DEMO_MODE` | `false` — real orders must be saved to Supabase |
    | `SESSION_SECRET` | A securely generated random value of at least 32 characters |
 
-   Do not expose the Supabase secret key or session secret through a `NEXT_PUBLIC_` variable, commit them to GitHub, or paste them into source files.
+   Do not expose the Supabase secret key or session secret through a `NEXT_PUBLIC_` variable, commit them to GitHub, or paste them into source files. Never set `PUBLIC_DEMO_MODE=true` for the real store: that mode keeps orders in the shopper's browser instead of saving them to the database. Use the separate staging Supabase project for Vercel preview deployments.
 
 4. **Disable public account registration.** In Supabase → Authentication → Sign In / Providers, turn off **Allow new users to sign up**. Customers do not need accounts; only accounts you create should be able to access the dashboard.
 5. **Prepare the Supabase database.** Apply every file in `supabase/migrations/` in chronological filename order, once per migration, using the Supabase SQL Editor or the repository's migration workflow. Do not paste multiple migration files together as one SQL statement. Never run migrations against a production database until the changes have been reviewed and a backup/rollback plan is in place.
 6. **Initialize the Detail Corner defaults.** If you used `npm run setup`, this is done automatically when the settings row is blank. Otherwise, from the connected hosted development environment run `npm run db:seed -- --detail-corner-if-blank`. This sets the store name and ZAR currency without overwriting existing settings. If you do not have a script runner, set these values in the dashboard after creating the admin.
 7. **Create the first admin account.** In Supabase → Authentication → Users, add an owner user and confirm the email. Then run `select public.grant_admin('you@example.com');` in the SQL Editor, using that same email address.
 8. **Deploy.** Deploy the project from Vercel. Review the build result and Vercel runtime logs before treating the deployment as ready.
-9. **Configure the store.** Sign in to `/admin`, review the store settings, and set the canonical shop URL. Add your real business contact details, products, prices, delivery methods, policies and payment instructions before accepting orders.
+9. **Configure the store.** Sign in to `/admin`, review the store settings, and set the canonical shop URL. Remove the demo catalogue and add your real products and licensed photos. Configure your business contact details, prices, delivery methods, privacy/terms/returns policies, VAT (if registered) and payment instructions before accepting orders.
 
 Keep a separate Supabase staging project for testing database changes, checkout and inventory behaviour. Do not run demo seed or end-to-end test workflows against production data.
 
