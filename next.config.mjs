@@ -82,6 +82,9 @@ const nextConfig = {
         source: "/:path*",
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },
+          ...(process.env.NODE_ENV === "production"
+            ? [{ key: "Strict-Transport-Security", value: "max-age=31536000" }]
+            : []),
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           framingHeader,
           {
