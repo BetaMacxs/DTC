@@ -49,7 +49,7 @@ begin
                -- and transition facts, but never retain an admin email address.
                'by', case
                  when e.value ->> 'by' in ('customer', 'system') then e.value -> 'by'
-                 else to_jsonb('admin'::text)
+                 else 'admin'::text
                end
              ))
              order by e.ordinality
