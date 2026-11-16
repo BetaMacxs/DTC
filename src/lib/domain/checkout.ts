@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { MAX_CART_LINES, MAX_LINE_QUANTITY, type CartQuote } from "./cart";
 import { foldDigits, isValidWhatsAppNumber } from "./phone";
-import { enabledCheckoutMethods, type CheckoutMethod, type StoreSettings } from "./settings";
+import { DEFAULT_SETTINGS, enabledCheckoutMethods, type CheckoutMethod, type StoreSettings } from "./settings";
 import type { Order, OrderEvent, OrderItem } from "./types";
 
 /**
@@ -134,12 +134,14 @@ export function productionCheckoutProblem(settings: StoreSettings): "store_name"
   if (!hasRealContact) return "contact";
   if (!settings.policies.privacy.trim()) return "privacy_policy";
 
+  const defaultShipping = DEFAULT_SETTINGS.shipping.methods[0];
   const hasPlaceholderShipping = settings.shipping.methods.some(
     (method) =>
-      method.id === "delivery" &&
-      method.name === "Delivery" &&
-      method.price === 0 &&
-      method.description === "We'll confirm the delivery cost and timing.",
+      method.id === defaultShipping.id &&
+      method.name === defaultShipping.name &&
+      method.description === defaultShipping.description &&
+      method.price === defaultShipping.price &&
+      method.requiresAddress === defaultShipping.requiresAddress,
   );
   if (settings.shipping.methods.length === 0 || hasPlaceholderShipping) return "shipping";
 
