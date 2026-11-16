@@ -68,7 +68,7 @@ await check("create a disposable draft product for permission checks", async () 
   const { data, error } = await service
     .from("products")
     .insert({
-      slug: \`security-check-\${suffix}\`,
+      slug: `security-check-${suffix}`,
       name: "Security check product",
       status: "draft",
       variants: [{
@@ -149,7 +149,7 @@ await check("shoppers can't change settings", () => {
 await check("shoppers can't add categories", async () => {
   const { data, error } = await shopper
     .from("categories")
-    .insert({ slug: \`security-check-\${suffix}\`, name: "Security check" })
+    .insert({ slug: `security-check-${suffix}`, name: "Security check" })
     .select("id")
     .maybeSingle();
   if (error) return true;
@@ -186,7 +186,7 @@ await check("shoppers can't create orders directly", async () => {
 
 if (mediaBucketReady) {
   await check("shoppers can't upload photos", async () => {
-    const path = \`security-check-\${suffix}.png\`;
+    const path = `security-check-${suffix}.png`;
     const { data, error } = await shopper.storage
       .from("store-media")
       .upload(path, new Uint8Array([1]), { contentType: "image/png" });
@@ -197,7 +197,7 @@ if (mediaBucketReady) {
 }
 
 await check("shoppers can't make themselves admin", async () => {
-  const email = \`security-check-anon-\${suffix}@example.com\`;
+  const email = `security-check-anon-${suffix}@example.com`;
   const password = randomBytes(18).toString("base64url");
   const created = await service.auth.admin.createUser({ email, password, email_confirm: true });
   if (created.error) return created.error.message;
@@ -207,7 +207,7 @@ await check("shoppers can't make themselves admin", async () => {
 });
 
 await check("public sign-ups are off", async () => {
-  const email = \`security-check-signup-\${suffix}@example.com\`;
+  const email = `security-check-signup-${suffix}@example.com`;
   const { data, error } = await shopper.auth.signUp({
     email,
     password: randomBytes(18).toString("base64url"),
@@ -218,7 +218,7 @@ await check("public sign-ups are off", async () => {
 
 /* ------------------------------------------- what a signed-in stranger can do */
 
-const strangerEmail = \`security-check-stranger-\${suffix}@example.com\`;
+const strangerEmail = `security-check-stranger-${suffix}@example.com`;
 const strangerPassword = randomBytes(18).toString("base64url");
 const created = await service.auth.admin.createUser({
   email: strangerEmail,
@@ -261,7 +261,7 @@ if (created.error) {
     });
     if (mediaBucketReady) {
       await check("signed-in non-admins can't upload photos", async () => {
-        const path = \`security-check-stranger-\${suffix}.png\`;
+        const path = `security-check-stranger-${suffix}.png`;
         const { data, error } = await stranger.storage
           .from("store-media")
           .upload(path, new Uint8Array([1]), { contentType: "image/png" });
@@ -302,8 +302,8 @@ for (const id of temporary.userIds) {
 /* ------------------------------------------------------------------- report */
 
 for (const result of results) {
-  console.log(\`\${result.ok ? "✓" : "✗"} \${result.label}\${result.detail ? \` — \${result.detail}\` : ""}\`);
+  console.log(`${result.ok ? "✓" : "✗"} ${result.label}${result.detail ? ` — ${result.detail}` : ""}`);
 }
 const failed = results.filter((result) => !result.ok).length;
-console.log(failed === 0 ? \`\nAll \${results.length} checks passed.\` : \`\n\${failed} of \${results.length} checks failed.\`);
+console.log(failed === 0 ? `\nAll ${results.length} checks passed.` : `\n${failed} of ${results.length} checks failed.`);
 process.exit(failed === 0 ? 0 : 1);
