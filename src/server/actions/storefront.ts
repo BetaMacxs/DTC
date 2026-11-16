@@ -103,7 +103,14 @@ export async function placeOrderAction(raw: Record<string, unknown>): Promise<Pl
 
   const input = parsed.data;
   // Fresh data, not the storefront cache: an order must use current prices.
-  const { settings, catalog } = await getStorefrontFresh();
+  let storefront;
+  try {
+    storefront = await getStorefrontFresh();
+  } catch (error) {
+    console.error("[checkout] current store data could not be loaded:", error);
+    return { ok: false, errors: {}, message: "failed" };
+  }
+  const { settings, catalog } = storefront;
   const quote = quoteCart(input.lines, catalog.products, settings, input.shippingMethodId);
   const errors = checkoutErrors(input, settings, quote);
   if (Object.keys(errors).length > 0) {
