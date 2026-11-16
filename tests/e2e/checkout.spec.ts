@@ -48,9 +48,9 @@ test("a pay-on-delivery order: placed, confirmed (stock reserved), fulfilled, co
   await transition(page, order.id, "fulfilled", /Fulfilled/);
   await transition(page, order.id, "completed", /Completed/);
 
-  // The overview counts it as a sale: $129, delivery free above $75.
+  // The overview counts it as a sale: 129, with delivery waived above the demo threshold.
   await page.goto("/admin");
-  await expect(page.getByText("$129.00").first()).toBeVisible();
+  await expect(page.getByTestId("sales-total")).toContainText(/129(?:\.00)?/);
 });
 
 test("a bank-transfer order shows the payment details, and cancelling returns the stock", async ({ page }) => {
