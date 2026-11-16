@@ -244,6 +244,28 @@ describe("an admin", () => {
     ).toMatch(/part of an open order/i);
   });
 
+  it("prevents removing variants or changing inventory tracking while orders are open", async () => {
+    await insertOrder("received", [{ productId: PRODUCT, variantId: "v-black", quantity: 1 }]);
+    expect(
+      await failure(
+        as("authenticated", ADMIN, (tx) =>
+          tx.query(
+            "update public.products set variants = $2::jsonb where id = $1",
+            [PRODUCT, JSON.stringify([{ id: "v-sand", optionValues: ["Sand"], price: 30, stock: 5, available: true }])],
+          ),
+        ),
+      ),
+    ).toMatch(/cannot be removed while it is referenced by an open order/i);
+
+    expect(
+      await failure(
+        as("authenticated", ADMIN, (tx) =>
+          tx.query("update public.products set track_inventory = false where id = $1", [PRODUCT]),
+        ),
+      ),
+    ).toMatch(/inventory tracking cannot be changed while this product is referenced by an open order/i);
+  });
+
   it("confirms an order and takes its stock exactly once, then returns it on cancel", async () => {
     const id = await insertOrder("received", [
       { productId: PRODUCT, variantId: "v-black", quantity: 2 },
