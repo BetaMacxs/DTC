@@ -12,6 +12,7 @@ import {
 } from "@/lib/domain/checkout";
 import { isWhatsAppConfigured } from "@/lib/domain/settings";
 import { getBackend } from "@/server/backend";
+import { backendKind, isProduction, publicDemoMode } from "@/server/env";
 import { sha256 } from "@/server/crypto";
 import { checkFormToken } from "@/server/form-token";
 import { rateLimit } from "@/server/rate-limit";
@@ -114,6 +115,17 @@ export async function placeOrderAction(raw: Record<string, unknown>): Promise<Pl
   const { settings, catalog } = storefront;
   const quote = quoteCart(input.lines, catalog.products, settings, input.shippingMethodId);
   const errors = checkoutErrors(input, settings, quote);
+  // In a live Supabase store, WhatsApp checkout must have a real destination.
+  // The local demo and explicit public-demo mode may still demonstrate the flow.
+  if (
+    input.method === "whatsapp" &&
+    !isWhatsAppConfigured(settings) &&
+    backendKind() === "supabase" &&
+    isProduction() &&
+    !publicDemoMode()
+  ) {
+    errors.method = "method_disabled";
+  }
   if (Object.keys(errors).length > 0) {
     return {
       ok: false,
