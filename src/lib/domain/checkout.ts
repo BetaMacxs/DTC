@@ -117,6 +117,34 @@ export function checkoutErrors(
   return errors;
 }
 
+/**
+ * A live Supabase store must not accept orders while it still has starter
+ * placeholders. This is intentionally separate from demo/local checkout.
+ */
+export function productionCheckoutProblem(settings: StoreSettings): "store_name" | "contact" | "shipping" | null {
+  if (settings.store.name.trim().toLowerCase() === "my store") return "store_name";
+
+  const hasRealContact = [
+    settings.contact.phone,
+    settings.contact.whatsapp,
+    settings.contact.email.endsWith(".example") ? "" : settings.contact.email,
+  ].some((value) => value.trim().length > 0);
+  if (!hasRealContact) return "contact";
+
+  const hasConfiguredShipping = settings.shipping.methods.some(
+    (method) =>
+      !(
+        method.id === "delivery" &&
+        method.name === "Delivery" &&
+        method.price === 0 &&
+        method.description === "We'll confirm the delivery cost and timing."
+      ),
+  );
+  if (!hasConfiguredShipping) return "shipping";
+
+  return null;
+}
+
 /* -------------------------------------------------------------- the order */
 
 export type NewOrder = Omit<Order, "id" | "number" | "createdAt" | "updatedAt">;
