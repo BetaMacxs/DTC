@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { MAX_CART_LINES, MAX_LINE_QUANTITY, type CartQuote } from "./cart";
 import { foldDigits } from "./phone";
-import { enabledCheckoutMethods, type CheckoutMethod, type StoreSettings } from "./settings";
+import { enabledCheckoutMethods, isValidWhatsAppNumber, type CheckoutMethod, type StoreSettings } from "./settings";
 import type { Order, OrderEvent, OrderItem } from "./types";
 
 /**
@@ -124,11 +124,13 @@ export function checkoutErrors(
 export function productionCheckoutProblem(settings: StoreSettings): "store_name" | "contact" | "privacy_policy" | "shipping" | null {
   if (settings.store.name.trim().toLowerCase() === "my store") return "store_name";
 
-  const hasRealContact = [
-    settings.contact.phone,
-    settings.contact.whatsapp,
-    settings.contact.email.toLowerCase().endsWith(".example") ? "" : settings.contact.email,
-  ].some((value) => value.trim().length > 0);
+  const email = settings.contact.email.trim().toLowerCase();
+  const placeholderEmail =
+    email.endsWith(".example") || /@(example\\.com|example\\.net|example\\.org)$/.test(email);
+  const hasRealContact =
+    isPlausiblePhone(settings.contact.phone) ||
+    isValidWhatsAppNumber(settings.contact.whatsapp) ||
+    (email.length > 0 && !placeholderEmail);
   if (!hasRealContact) return "contact";
   if (!settings.policies.privacy.trim()) return "privacy_policy";
 
