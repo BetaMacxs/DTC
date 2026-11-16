@@ -524,12 +524,16 @@ function adminApi(user: AdminUser): AdminApi {
 /* ------------------------------------------------------------------ auth */
 
 const authApi: AuthApi = {
-  async currentAdmin() {
+  async currentUser() {
     const session = await readSession();
     if (!session) return null;
     const owner = (await readData()).owner;
     if (!owner || owner.id !== session.sub || owner.sessionVersion !== session.v) return null;
     return { id: owner.id, email: owner.email };
+  },
+
+  async currentAdmin() {
+    return authApi.currentUser();
   },
 
   async signIn(email, password) {
