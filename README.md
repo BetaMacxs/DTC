@@ -18,7 +18,7 @@ No coding needed: Claude does the setup with you and only stops when it needs yo
    > Clone https://github.com/your-name/your-store into this folder. If GitHub needs me to sign in, give me the command to run in the Terminal.
 
    A public repository downloads straight away. For a private one, you run that command in the session's **Terminal** and sign in to GitHub there: on Windows in the browser window that opens; on a Mac, GitHub asks for your username and a password — paste a [personal access token](https://github.com/settings/personal-access-tokens/new) (only this repository, **Contents: Read and write**) instead of your GitHub password.
-3. **Open the new folder** in a new **Local** session and ask Claude: *Set up Halden for me* — or type `/halden-setup`.
+3. **Open the new folder** in a new **Local** session and ask Claude: *Set up Detail Corner for me*.
 4. **Follow its instructions.** Claude checks your computer, connects a new Supabase project, shows you the store and its dashboard on your computer, then guides you through putting it online with Hostinger and checks the live store. When it asks you to type something yourself, use the **Terminal** button at the top of the Claude session. Your keys and password never go into the chat.
 
 Prefer to do it yourself? The three steps below are the same setup, by hand.
@@ -36,7 +36,7 @@ npm install
 npm run dev
 ```
 
-Open <http://localhost:3000> — that's the Halden demo store. Nothing to configure yet: until you connect Supabase, the store saves everything in a `.data/` folder on your computer.
+Open <http://localhost:3000> — that's the Detail Corner demo store. Nothing to configure yet: until you connect Supabase, the store saves everything in a `.data/` folder on your computer.
 
 ### 2. Connect Supabase
 
@@ -53,7 +53,7 @@ Open <http://localhost:3000> — that's the Halden demo store. Nothing to config
    npm run setup
    ```
 
-   It prepares the database, saves your project's three keys in a file called `.env.local`, adds the 30 demo products, creates your admin account and turns off public sign-ups. Keys are never shown on screen, and you can run it again at any time.
+   It prepares the database, saves your project's three keys in a file called `.env.local`, adds the 12 demo products, creates your admin account and turns off public sign-ups. Keys are never shown on screen, and you can run it again at any time.
 
 4. Stop `npm run dev` (Ctrl+C), start it again, and sign in at <http://localhost:3000/admin>.
 

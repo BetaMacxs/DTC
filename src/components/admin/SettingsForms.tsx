@@ -692,7 +692,7 @@ export function DemoPanel({
                 className={styles.demoCheckBox}
               />
               <span>
-                Also clear Halden demo settings, hero/banner images and sample pages
+                Also clear sample demo settings, hero/banner images and sample pages
                 <span className={styles.fieldHint}>
                   Detected: {demoSettingsHits.join(", ")}. Custom details you saved stay untouched.
                 </span>
@@ -732,13 +732,13 @@ export function DemoPanel({
           {demoSettingsHits.length > 0 && (
             <Notice
               tone="warning"
-              title="Halden demo settings are still active"
+              title="Sample demo settings are still active"
               action={
                 <ConfirmButton
                   variant="outline"
                   size="sm"
-                  title="Clear remaining Halden demo settings?"
-                  description="Resets only untouched Halden sample fields (store name, demo email, demo bank note, sample hero/banners, and demo pages) back to clean Detail Corner defaults. Any details you customized stay intact."
+                  title="Clear remaining sample demo settings?"
+                  description="Resets only untouched sample fields (store name, demo email, demo bank note, sample hero/banners, and demo pages) back to clean Detail Corner defaults. Any details you customized stay intact."
                   confirmLabel="Clean demo settings"
                   onConfirm={async () => {
                     const result = await cleanDemoSettingsAction();
@@ -778,8 +778,8 @@ export function DemoPanel({
               title="Add the demo content?"
               description={
                 includeSettings
-                  ? "Adds 30 sample products in 5 categories and 3 collections, and replaces your store name, homepage, delivery options and pages with the demo ones."
-                  : "Adds 30 sample products in 5 categories and 3 collections. Nothing of yours is changed; a demo item never takes a handle you already use."
+                  ? "Adds 12 sample products in 7 categories and 3 collections, and replaces your store name, homepage, delivery options and pages with the demo ones."
+                  : "Adds 12 sample products in 7 categories and 3 collections. Nothing of yours is changed; a demo item never takes a handle you already use."
               }
               confirmLabel="Add demo content"
               onConfirm={async () => {

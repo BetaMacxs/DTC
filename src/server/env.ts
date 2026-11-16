@@ -106,7 +106,7 @@ export function isProduction(): boolean {
 
 /**
  * Public demo mode — for a store anyone on the internet can try, like the
- * hosted Halden demo. When on:
+ * hosted Detail Corner demo. When on:
  *   • visitors can open a read-only preview of the dashboard (no account);
  *   • orders placed in the shop are kept, encrypted, in the shopper's own
  *     browser for an hour so they see the whole flow, and are never saved

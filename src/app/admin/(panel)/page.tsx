@@ -122,7 +122,7 @@ export default async function OverviewPage() {
         <div className={styles.mb6}>
           <Notice
             tone="warning"
-            title="Halden demo settings are still visible on your storefront"
+            title="Sample demo settings are still visible on your storefront"
             action={
               <Link href="/admin/settings#demo" className={styles.textLink}>
                 Clean demo settings

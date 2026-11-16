@@ -83,18 +83,21 @@ const DEMO_GIFT_BANNER_IMAGE = "/demo/banners/gift-guide.jpg";
 const DEMO_HERO_IMAGE = "/demo/hero/hero-1.jpg";
 const DEMO_DESK_COLLECTION_ID = "de000000-0000-4000-8000-a00000000002";
 
-/** Lists Halden demo settings fields still present in `settings`. */
+/** Lists demo settings fields still present in `settings`. */
 export function detectDemoSettings(settings: StoreSettings): string[] {
   const sample = demoSettings();
   const hits: string[] = [];
-  if (settings.store.name === sample.store.name || settings.store.description === sample.store.description) {
-    hits.push("Store name/description (Halden)");
+  if (
+    settings.store.name === "Halden" ||
+    (settings.store.description !== "" && settings.store.description === sample.store.description)
+  ) {
+    hits.push("Store name/description (sample)");
   }
   if (settings.store.currency === "USD") {
     hits.push("Demo currency (USD)");
   }
   if (settings.contact.email === sample.contact.email) {
-    hits.push("Demo contact email (hello@halden.example)");
+    hits.push("Demo contact email (hello@detailcorner.example)");
   }
   if (settings.checkout.bankTransferInstructions === sample.checkout.bankTransferInstructions) {
     hits.push("Demo bank transfer instructions");
@@ -132,7 +135,7 @@ export function detectDemoSettings(settings: StoreSettings): string[] {
 }
 
 /**
- * Resets only fields that still match the Halden demo template verbatim,
+ * Resets only fields that still match the demo template verbatim,
  * preserving every custom setting the store owner entered.
  */
 export function stripDemoSettings(settings: StoreSettings): { settings: StoreSettings; cleanedFields: string[] } {
@@ -141,15 +144,15 @@ export function stripDemoSettings(settings: StoreSettings): { settings: StoreSet
   const cleanedFields: string[] = [];
   const next: StoreSettings = structuredClone(settings);
 
-  if (next.store.name === sample.store.name) {
+  if (next.store.name === "Halden" || (sample.store.name !== starter.store.name && next.store.name === sample.store.name)) {
     next.store.name = starter.store.name;
     cleanedFields.push("store.name");
   }
-  if (next.store.tagline === sample.store.tagline) {
+  if (next.store.tagline === "Well-made things for everyday life") {
     next.store.tagline = starter.store.tagline;
     cleanedFields.push("store.tagline");
   }
-  if (next.store.description === sample.store.description) {
+  if (next.store.description === sample.store.description && next.store.description !== "") {
     next.store.description = "";
     cleanedFields.push("store.description");
   }

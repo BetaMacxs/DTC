@@ -1,5 +1,5 @@
 /**
- * Puts the demo store (30 fictional products, their categories and
+ * Puts the demo store (12 fictional products, their categories and
  * collections) into your Supabase database — or takes it back out.
  *
  *   npm run db:seed                  add or refresh the demo products
@@ -107,10 +107,10 @@ async function remove() {
         .from("store_settings")
         .upsert({ id: 1, data: cleaned.settings }, { onConflict: "id" });
       if (writeError) fail(`Could not clean the store settings: ${writeError.message}`);
-      console.log(`✓ Cleaned ${cleaned.cleanedFields.length} Halden demo setting field(s).`);
+      console.log(`✓ Cleaned ${cleaned.cleanedFields.length} sample demo setting field(s).`);
     } else {
       console.log(
-        `! Store settings still contain Halden demo values (${demoHits.join(", ")}). Re-run with --remove --settings or clean them in Settings → Demo content.`,
+        `! Store settings still contain sample demo values (${demoHits.join(", ")}). Re-run with --remove --settings or clean them in Settings → Demo content.`,
       );
     }
   }

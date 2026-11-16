@@ -14,7 +14,7 @@ import type { Order, OrderItem } from "./types";
 import { buildInquiryMessage, buildOrderMessage, whatsappUrl, type WhatsAppLabels } from "./whatsapp";
 
 const settings = settingsSchema.parse({
-  store: { name: "Halden", currency: "USD" },
+  store: { name: "Detail Corner", currency: "USD" },
   contact: { whatsapp: "+44 7700 900123" },
   checkout: { whatsapp: true, cashOnDelivery: true, bankTransfer: false },
   shipping: {
@@ -327,7 +327,7 @@ describe("WhatsApp messages", () => {
     const quote = quoteCart(input.lines, [shirt, mug], settings, "standard");
     const order = { ...buildOrder(input, quote, settings, new Date(), { whatsappConfigured: true }), number: 1042 };
     const message = buildOrderMessage(order, {
-      storeName: "Halden",
+      storeName: "Detail Corner",
       money: { currency: "USD", locale: "en" },
       labels,
     });
@@ -351,7 +351,7 @@ describe("WhatsApp messages", () => {
   it("writes a product question with the link", () => {
     const text = buildInquiryMessage(
       { name: "Organic Tee", variantLabel: "Black / M", url: "https://shop.example/products/organic-tee" },
-      { storeName: "Halden", labels },
+      { storeName: "Detail Corner", labels },
     );
     expect(text).toContain("*Organic Tee* (Black / M)");
     expect(text).toContain("Link: https://shop.example/products/organic-tee");

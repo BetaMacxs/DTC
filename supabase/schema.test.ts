@@ -211,7 +211,7 @@ describe("an admin", () => {
       expect((await tx.query("select id from public.categories")).rows).toHaveLength(2);
       const renamed = await tx.query("update public.products set name = 'Speaker Mini' where id = $1 returning updated_at", [PRODUCT]);
       expect(renamed.rows).toHaveLength(1);
-      await tx.query("update public.store_settings set data = '{\"store\":{\"name\":\"Halden\"}}' where id = 1");
+      await tx.query("update public.store_settings set data = '{\"store\":{\"name\":\"Detail Corner\"}}' where id = 1");
     });
   });
 
