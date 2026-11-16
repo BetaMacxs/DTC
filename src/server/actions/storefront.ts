@@ -118,10 +118,15 @@ export async function placeOrderAction(raw: Record<string, unknown>): Promise<Pl
   if (backendKind() === "supabase" && isProduction() && !publicDemoMode()) {
     const setupProblem = productionCheckoutProblem(settings);
     const remainingDemoSettings = detectDemoSettings(settings);
-    if (setupProblem || remainingDemoSettings.length > 0) {
+    const hasDemoCatalog =
+      catalog.products.some((item) => item.isDemo) ||
+      catalog.categories.some((item) => item.isDemo) ||
+      catalog.collections.some((item) => item.isDemo);
+    if (setupProblem || remainingDemoSettings.length > 0 || hasDemoCatalog) {
       console.error("[checkout] live store setup is incomplete:", {
         setupProblem,
         remainingDemoSettings,
+        hasDemoCatalog,
       });
       return { ok: false, errors: {}, message: "failed" };
     }
