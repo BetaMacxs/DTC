@@ -7,9 +7,10 @@ import { defineConfig, devices } from "@playwright/test";
  *   npm run test:e2e            build, then run everything (throwaway local stores)
  *   npx playwright test         run again without rebuilding
  *
- * Against a real Supabase project (keys in the environment or .env.local):
- *   E2E_BACKEND=supabase E2E_ADMIN_EMAIL=… E2E_ADMIN_PASSWORD=… npx playwright test
- * Test orders and test items are removed afterwards (global-teardown.ts).
+ * Against a disposable Supabase staging project only:
+ *   E2E_BACKEND=supabase E2E_SUPABASE_CONFIRMATION=I_CONFIRM_THIS_IS_A_DISPOSABLE_STAGING_PROJECT
+ *   E2E_RUN_ID=<unique-run-id> E2E_ADMIN_EMAIL=… E2E_ADMIN_PASSWORD=… npx playwright test
+ * Test orders and test items are removed afterwards; demo settings are restored (global-teardown.ts).
  *
  * Browsers: `npx playwright install chromium` once, or use an installed
  * Chrome with PLAYWRIGHT_CHANNEL=chrome.
