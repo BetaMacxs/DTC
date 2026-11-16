@@ -121,8 +121,12 @@ async function initDetailCorner() {
   if (error) fail(`Could not read the store settings: ${error.message}`);
   const raw = (data?.data as Record<string, unknown>) ?? {};
   const blank = !data || Object.keys(raw).length === 0;
+  if (!blank && args.has("--detail-corner-if-blank")) {
+    console.log("Store settings already exist; left unchanged.");
+    return;
+  }
   if (!blank && !args.has("--force")) {
-    fail("Store settings already exist. Pass --force to overwrite with Detail Corner starter defaults, or edit in /admin/settings.");
+    fail("Store settings already exist. Pass --force to overwrite with Detail Corner starter defaults, or use --detail-corner-if-blank to leave existing settings untouched.");
   }
   const starter = detailCornerStarterSettings();
   const { error: writeError } = await supabase
@@ -175,5 +179,5 @@ async function seed() {
 }
 
 if (args.has("--remove")) await remove();
-else if (args.has("--detail-corner")) await initDetailCorner();
+else if (args.has("--detail-corner") || args.has("--detail-corner-if-blank")) await initDetailCorner();
 else await seed();
