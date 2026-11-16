@@ -188,6 +188,22 @@ function adminApi(user: AdminUser): AdminApi {
         if (data.products.some((candidate) => candidate.slug === product.slug && candidate.id !== product.id)) {
           throw new ConflictError(`Another product already uses the URL handle "${product.slug}".`);
         }
+        if (existing) {
+          const openOrders = data.orders.filter(
+            (order) =>
+              ["prepared", "opened", "received", "confirmed", "fulfilled"].includes(order.status) &&
+              order.items.some((item) => item.productId === product.id),
+          );
+          const newVariantIds = new Set(product.variants.map((variant) => variant.id));
+          if (openOrders.some((order) => order.items.some(
+            (item) => item.productId === product.id && !newVariantIds.has(item.variantId),
+          ))) {
+            throw new ConflictError("A product option cannot be removed while it is referenced by an open order.");
+          }
+          if (existing.trackInventory !== product.trackInventory && openOrders.length > 0) {
+            throw new ConflictError("Inventory tracking cannot be changed while this product is referenced by an open order.");
+          }
+        }
         const saved = { ...product, updatedAt: now() };
         if (existing) data.products[index] = saved;
         else data.products.push(saved);
