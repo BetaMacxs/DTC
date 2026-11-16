@@ -242,6 +242,13 @@ describe("an admin", () => {
         as("authenticated", ADMIN, (tx) => tx.query("delete from public.products where id = $1 returning id", [PRODUCT])),
       ),
     ).toMatch(/part of an open order/i);
+    const order = (await db.query<{ id: string }>(
+      "select id from public.orders where status = 'received' and items @> $1::jsonb order by created_at desc limit 1",
+      [JSON.stringify([{ productId: PRODUCT, variantId: "v-black", quantity: 1 }])],
+    )).rows[0];
+    await as("authenticated", ADMIN, (tx) =>
+      tx.query("select public.admin_transition_order($1, 'received', 'cancelled', 0, '')", [order.id]),
+    );
   });
 
   it("prevents removing variants or changing inventory tracking while orders are open", async () => {
@@ -264,6 +271,13 @@ describe("an admin", () => {
         ),
       ),
     ).toMatch(/inventory tracking cannot be changed while this product is referenced by an open order/i);
+    const order = (await db.query<{ id: string }>(
+      "select id from public.orders where status = 'received' and items @> $1::jsonb order by created_at desc limit 1",
+      [JSON.stringify([{ productId: PRODUCT, variantId: "v-black", quantity: 1 }])],
+    )).rows[0];
+    await as("authenticated", ADMIN, (tx) =>
+      tx.query("select public.admin_transition_order($1, 'received', 'cancelled', 0, '')", [order.id]),
+    );
   });
 
   it("confirms an order and takes its stock exactly once, then returns it on cancel", async () => {
@@ -469,6 +483,14 @@ describe("atomic inventory reservation and POPIA redaction", () => {
         ),
       ),
     ).toMatch(/no longer exists/);
+
+    // Close the intentionally invalid test orders before the next stock update;
+    // the open-order variant trigger correctly protects all outstanding lines.
+    await as("authenticated", ADMIN, async (tx) => {
+      await tx.query("select public.admin_transition_order($1, 'received', 'cancelled', 0, '')", [oversellId]);
+      await tx.query("select public.admin_transition_order($1, 'received', 'cancelled', 0, '')", [missingProductId]);
+      await tx.query("select public.admin_transition_order($1, 'received', 'cancelled', 0, '')", [missingVariantId]);
+    });
 
     // Split lines within stock (2 + 2 = 4 <= 5) succeed and return cleanly on cancellation.
     const validSplitId = await insertOrder("received", [
