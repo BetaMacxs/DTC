@@ -111,10 +111,26 @@ Received ──▶ Confirmed ──▶ Fulfilled ──▶ Completed
 
 ## More about Supabase
 
-- `npm run db:check` checks your project's security from the outside — what a shopper and a signed-in stranger can and can't do. It creates disposable probe records and users, removes them afterwards, and performs a same-value settings update to check write access. Run it against a dedicated staging project, not production.
+- `npm run db:check` checks your project's security from the outside — what a shopper and a signed-in stranger can and can't do. It creates disposable probe records and users, removes them afterwards, and performs a same-value settings update to check write access. Run it against a dedicated staging project, not production. Set `DB_CHECK_CONFIRMATION=I_CONFIRM_THIS_IS_A_DISPOSABLE_STAGING_PROJECT` to enable it.
 - After updating the starter, `npm run db:migrate` applies any new database changes.
 - `npm run db:seed` adds or restores the demo products; `npm run db:seed -- --remove` takes them out. You can also do both from **Settings → Demo content** in the dashboard.
 - To start over with a fresh demo store on the local store: `npm run demo:reset` (your current data is moved to `.data-backups/`, never deleted).
+
+### Real Supabase staging checks
+
+The GitHub Actions workflow can also test the real Supabase database, including competing stock reservations, shared rate limits, RLS permissions and browser checkout. It runs only on pushes to `main`, and only when the following repository secrets are configured:
+
+| GitHub repository secret | Purpose |
+| --- | --- |
+| `STAGING_SUPABASE_URL` | Dedicated staging Supabase project URL |
+| `STAGING_SUPABASE_PUBLISHABLE_KEY` | Staging publishable key |
+| `STAGING_SUPABASE_SECRET_KEY` | Staging secret key |
+| `STAGING_ADMIN_EMAIL` | Existing staging admin email |
+| `STAGING_ADMIN_PASSWORD` | Staging admin password |
+| `STAGING_TESTS_CONFIRMATION` | Must equal `I_CONFIRM_THIS_IS_A_DISPOSABLE_STAGING_PROJECT` |
+
+Apply the migrations to the staging project in order, create its admin and grant admin access before adding these secrets. The browser suite resets the staging demo settings and catalogue after running. Use a disposable staging project with no real customer data; never put production credentials in these secrets.
+
 
 <details>
 <summary><strong>Without the CLI</strong></summary>
