@@ -70,7 +70,7 @@ export const imageUrlSchema = z
   .trim()
   .max(1000)
   .refine(
-    (value) => value === "" || value.startsWith("/") || /^https:\/\//.test(value),
+    (value) => value === "" || (value.startsWith("/") && !value.startsWith("//")) || /^https:\/\//.test(value),
     "Invalid image address",
   );
 

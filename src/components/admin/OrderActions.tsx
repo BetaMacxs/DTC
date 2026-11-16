@@ -5,7 +5,7 @@ import { useState } from "react";
 import { buttonClass } from "@/components/ui/button";
 import { ORDER_STATUS_META, ORDER_TRANSITIONS, TRANSITION_LABELS, stockEffect } from "@/lib/domain/orders";
 import type { Order, OrderStatus, PaymentStatus } from "@/lib/domain/types";
-import { deleteOrderAction, transitionOrderAction, updateOrderAction } from "@/server/actions/admin";
+import { anonymizeOrderAction, deleteOrderAction, transitionOrderAction, updateOrderAction } from "@/server/actions/admin";
 import styles from "./admin.module.css";
 import { ConfirmButton, Modal, TextAreaField, useToast } from "./ui";
 
@@ -182,6 +182,36 @@ export function InternalNote({ order }: { order: Order }) {
         </button>
       )}
     </div>
+  );
+}
+
+export function AnonymizeOrderButton({ order }: { order: Order }) {
+  const router = useRouter();
+  const toast = useToast();
+  const alreadyRedacted =
+    order.customer.name === "Redacted customer" &&
+    !order.customer.phone &&
+    !order.customer.email &&
+    !order.address &&
+    !order.customerNote;
+  if (alreadyRedacted || !["completed", "cancelled", "discarded"].includes(order.status)) return null;
+  return (
+    <ConfirmButton
+      size="sm"
+      variant="ghost"
+      title={`Remove personal details from order #${order.number}?`}
+      description="Removes the customer's name, phone, email, address and delivery note for POPIA data privacy while keeping the order number, items and totals for your accounting records."
+      confirmLabel="Remove personal details"
+      onConfirm={async () => {
+        const result = await anonymizeOrderAction(order.id);
+        if (result.ok) {
+          toast("success", `Customer details removed from order #${order.number}`);
+          router.refresh();
+        } else toast("danger", result.error);
+      }}
+    >
+      Remove personal details
+    </ConfirmButton>
   );
 }
 

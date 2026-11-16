@@ -22,7 +22,14 @@
  */
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { demoCatalog, demoSettings } from "@/lib/demo/seed";
+import {
+  demoCatalog,
+  demoSettings,
+  detailCornerStarterSettings,
+  detectDemoSettings,
+  stripDemoSettings,
+} from "@/lib/demo/seed";
+import { parseSettings } from "@/lib/domain/settings";
 import type { Grouping, Product } from "@/lib/domain/types";
 import { fromGrouping, fromProduct } from "@/server/backend/supabase/mappers";
 import { env, fail, loadEnv } from "./lib.mjs";
@@ -88,6 +95,42 @@ async function remove() {
   console.log(
     `✓ Removed ${removed.products} demo products, ${removed.categories} categories and ${removed.collections} collections.`,
   );
+
+  const { data, error } = await supabase.from("store_settings").select("data").eq("id", 1).maybeSingle();
+  if (error) fail(`Could not read the store settings: ${error.message}`);
+  const current = parseSettings(data?.data);
+  const demoHits = detectDemoSettings(current);
+  if (demoHits.length > 0) {
+    if (args.has("--settings")) {
+      const cleaned = stripDemoSettings(current);
+      const { error: writeError } = await supabase
+        .from("store_settings")
+        .upsert({ id: 1, data: cleaned.settings }, { onConflict: "id" });
+      if (writeError) fail(`Could not clean the store settings: ${writeError.message}`);
+      console.log(`✓ Cleaned ${cleaned.cleanedFields.length} Halden demo setting field(s).`);
+    } else {
+      console.log(
+        `! Store settings still contain Halden demo values (${demoHits.join(", ")}). Re-run with --remove --settings or clean them in Settings → Demo content.`,
+      );
+    }
+  }
+}
+
+async function initDetailCorner() {
+  const { data, error } = await supabase.from("store_settings").select("data").eq("id", 1).maybeSingle();
+  if (error) fail(`Could not read the store settings: ${error.message}`);
+  const raw = (data?.data as Record<string, unknown>) ?? {};
+  const blank = !data || Object.keys(raw).length === 0;
+  if (!blank && !args.has("--force")) {
+    fail("Store settings already exist. Pass --force to overwrite with Detail Corner starter defaults, or edit in /admin/settings.");
+  }
+  const starter = detailCornerStarterSettings();
+  const { error: writeError } = await supabase
+    .from("store_settings")
+    .upsert({ id: 1, data: starter }, { onConflict: "id" });
+  if (writeError) fail(`Could not write Detail Corner starter settings: ${writeError.message}`);
+  console.log("✓ Detail Corner starter settings saved (ZAR currency, Obsidian & Crimson theme).");
+  console.log("  Still configure in /admin/settings: contact email/WhatsApp, shipping rates, bank details, VAT (if registered), hero photo & policies.");
 }
 
 async function seed() {
@@ -132,4 +175,5 @@ async function seed() {
 }
 
 if (args.has("--remove")) await remove();
+else if (args.has("--detail-corner")) await initDetailCorner();
 else await seed();

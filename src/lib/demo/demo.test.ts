@@ -4,7 +4,14 @@ import { describe, expect, it } from "vitest";
 import { productInputSchema } from "@/lib/domain/admin-schemas";
 import { storefrontProducts } from "@/lib/domain/catalog-query";
 import { settingsSchema } from "@/lib/domain/settings";
-import { demoCatalog, demoLocalData } from "./seed";
+import {
+  demoCatalog,
+  demoLocalData,
+  demoSettings,
+  detailCornerStarterSettings,
+  detectDemoSettings,
+  stripDemoSettings,
+} from "./seed";
 import { DEMO_SETTINGS } from "./settings";
 
 /**
@@ -117,3 +124,49 @@ describe("demo settings", () => {
     expect(data.nextOrderNumber).toBe(1001);
   });
 });
+
+describe("Detail Corner starter settings & demo cleanup", () => {
+  it("provides clean ZAR starter settings with zero placeholder business data", () => {
+    const starter = detailCornerStarterSettings();
+    expect(settingsSchema.safeParse(starter).success).toBe(true);
+    expect(starter.store.name).toBe("Detail Corner");
+    expect(starter.store.tagline).toBe("The Art of Perfection");
+    expect(starter.store.currency).toBe("ZAR");
+    expect(starter.theme.accent).toBe("#C41E3A");
+    expect(starter.contact).toEqual({ email: "", phone: "", whatsapp: "", address: "", hours: "" });
+    expect(starter.checkout.vatEnabled).toBe(false);
+    expect(starter.checkout.vatRate).toBe(15);
+    expect(starter.checkout.vatNumber).toBe("");
+    expect(starter.checkout.bankTransfer).toBe(false);
+    expect(starter.checkout.bankTransferInstructions).toBe("");
+    expect(detectDemoSettings(starter)).toEqual([]);
+  });
+
+  it("detects Halden demo settings and resets only untouched demo fields", () => {
+    const sample = demoSettings();
+    expect(detectDemoSettings(sample).length).toBeGreaterThanOrEqual(4);
+
+    // Customize store name, email, and about policy; leave other Halden demo fields verbatim.
+    const mixed = settingsSchema.parse({
+      ...sample,
+      store: { ...sample.store, name: "Detail Corner", currency: "ZAR" },
+      contact: { ...sample.contact, email: "orders@detailcorner.example" },
+      policies: { ...sample.policies, about: "Custom Detail Corner story." },
+    });
+
+    const { settings: cleaned, cleanedFields } = stripDemoSettings(mixed);
+    expect(cleaned.store.name).toBe("Detail Corner");
+    expect(cleaned.store.currency).toBe("ZAR");
+    expect(cleaned.contact.email).toBe("orders@detailcorner.example");
+    expect(cleaned.policies.about).toBe("Custom Detail Corner story.");
+
+    // Untouched Halden demo fields are cleared
+    expect(cleaned.checkout.bankTransferInstructions).toBe("");
+    expect(cleaned.checkout.bankTransfer).toBe(false);
+    expect(cleaned.policies.shipping).toBe("");
+    expect(cleaned.homepage.hero.imageUrl).toBe("");
+    expect(cleanedFields).toContain("checkout.bankTransferInstructions");
+    expect(detectDemoSettings(cleaned)).toEqual([]);
+  });
+});
+

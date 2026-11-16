@@ -9,7 +9,8 @@ import {
   stockEffect,
 } from "./orders";
 import { settingsSchema } from "./settings";
-import type { Order } from "./types";
+import { InsufficientStockError, applyStockDelta } from "./stock";
+import type { Order, OrderItem } from "./types";
 import { buildInquiryMessage, buildOrderMessage, whatsappUrl, type WhatsAppLabels } from "./whatsapp";
 
 const settings = settingsSchema.parse({
@@ -253,6 +254,42 @@ describe("order lifecycle", () => {
     expect(metrics.daily).toHaveLength(30);
     expect(metrics.daily.at(-2)).toMatchObject({ date: "2026-05-29", total: 150, count: 2 });
     expect(isStaleHandoff(order("opened", 1, "2026-05-01"), now)).toBe(true);
+  });
+
+  it("prevents overselling, sums duplicate variant lines, and restores stock on cancellation", () => {
+    const tracked = product({
+      id: "ceramic-kit",
+      name: "Ceramic Kit",
+      trackInventory: true,
+      variants: [variant({ id: "kit-v1", stock: 5 })],
+    });
+    const item = (quantity: number, variantId = "kit-v1"): OrderItem => ({
+      productId: "ceramic-kit",
+      variantId,
+      name: "Ceramic Kit",
+      variantLabel: "",
+      sku: "CK-1",
+      unitPrice: 250,
+      quantity,
+      lineTotal: 250 * quantity,
+      imageUrl: null,
+    });
+
+    // Duplicate lines summing to 6 exceed stock of 5
+    expect(() => applyStockDelta(tracked, [item(3), item(3)], 1)).toThrow(InsufficientStockError);
+
+    // Missing variant on a tracked product throws cleanly
+    expect(() => applyStockDelta(tracked, [item(1, "deleted-variant")], 1)).toThrow(/no longer exists/);
+
+    // Duplicate lines within stock (2 + 2 = 4) decrement atomically and restore identically
+    const reserved = applyStockDelta(tracked, [item(2), item(2)], 1);
+    expect(reserved?.variants[0].stock).toBe(1);
+    const restored = applyStockDelta(reserved!, [item(2), item(2)], -1);
+    expect(restored?.variants[0].stock).toBe(5);
+
+    // Untracked product never modifies stock
+    const untracked = product({ id: "untracked", trackInventory: false, variants: [variant({ id: "u-v1", stock: 0 })] });
+    expect(applyStockDelta(untracked, [{ ...item(10), productId: "untracked", variantId: "u-v1" }], 1)).toBeNull();
   });
 });
 

@@ -12,6 +12,7 @@ import {
 } from "@/components/admin/SettingsForms";
 import { SettingsProvider } from "@/components/admin/settings-kit";
 import { PageHeader } from "@/components/admin/ui";
+import { detectDemoSettings } from "@/lib/demo/seed";
 import { requireAdmin } from "@/server/admin";
 import { getBackend } from "@/server/backend";
 
@@ -36,6 +37,7 @@ export default async function SettingsPage() {
     categories: catalog.categories.filter((category) => category.isDemo).length,
     collections: catalog.collections.filter((collection) => collection.isDemo).length,
   };
+  const demoSettingsHits = detectDemoSettings(settings);
 
   return (
     <>
@@ -60,7 +62,7 @@ export default async function SettingsPage() {
             <DeliveryPanel />
             <PoliciesPanel />
             <SocialPanel />
-            <DemoPanel counts={counts} preview={admin.preview} />
+            <DemoPanel counts={counts} demoSettingsHits={demoSettingsHits} preview={admin.preview} />
             {!admin.preview && <AccountPanel email={admin.user.email} backend={getBackend().kind} />}
           </div>
         </SettingsProvider>

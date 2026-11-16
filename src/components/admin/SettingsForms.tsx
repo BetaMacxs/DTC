@@ -8,7 +8,7 @@ import { COMMON_CURRENCIES } from "@/lib/domain/money";
 import { formatInternational, isValidWhatsAppNumber, normalizePhone } from "@/lib/domain/phone";
 import { LANGUAGE_LABELS, LANGUAGES, type Language } from "@/lib/i18n/languages";
 import { uid } from "@/lib/uid";
-import { changePasswordAction, loadDemoAction, removeDemoAction } from "@/server/actions/admin";
+import { changePasswordAction, cleanDemoSettingsAction, loadDemoAction, removeDemoAction } from "@/server/actions/admin";
 import styles from "./admin.module.css";
 import { ImagePicker } from "./ImagePicker";
 import { SettingsPanel, useSettingsDraft, useStoredSettings } from "./settings-kit";
@@ -657,14 +657,17 @@ export function PoliciesPanel() {
 
 export function DemoPanel({
   counts,
+  demoSettingsHits = [],
   preview = false,
 }: {
   counts: { products: number; categories: number; collections: number };
+  demoSettingsHits?: string[];
   preview?: boolean;
 }) {
   const router = useRouter();
   const toast = useToast();
   const [includeSettings, setIncludeSettings] = useState(false);
+  const [cleanSettings, setCleanSettings] = useState(demoSettingsHits.length > 0);
   const total = counts.products + counts.categories + counts.collections;
 
   return (
@@ -680,21 +683,42 @@ export function DemoPanel({
             Your shop has <strong className={styles.strongText}>{counts.products} demo products</strong>, {counts.categories} demo
             categories and {counts.collections} demo collections. They are fictional and marked “Demo” in your lists.
           </p>
+          {demoSettingsHits.length > 0 && (
+            <label className={styles.demoCheckLabel}>
+              <input
+                type="checkbox"
+                checked={cleanSettings}
+                onChange={(event) => setCleanSettings(event.target.checked)}
+                className={styles.demoCheckBox}
+              />
+              <span>
+                Also clear Halden demo settings, hero/banner images and sample pages
+                <span className={styles.fieldHint}>
+                  Detected: {demoSettingsHits.join(", ")}. Custom details you saved stay untouched.
+                </span>
+              </span>
+            </label>
+          )}
           <div>
             <ConfirmButton
               variant="outline"
               title="Remove all demo content?"
               description={
                 <>
-                  This deletes the {counts.products} demo products and the demo categories and collections. Your own products,
-                  your settings and every order stay as they are — orders keep a copy of what was bought.
+                  This deletes the {counts.products} demo products and the demo categories and collections. Your own products
+                  and every order stay as they are — orders keep a copy of what was bought.
                 </>
               }
               confirmLabel="Remove demo content"
               onConfirm={async () => {
-                const result = await removeDemoAction();
+                const result = await removeDemoAction({ cleanSettings });
                 if (result.ok) {
-                  toast("success", `Removed ${result.data.products} demo products`);
+                  toast(
+                    "success",
+                    result.data.settingsCleaned > 0
+                      ? `Removed ${result.data.products} demo products and cleaned demo settings`
+                      : `Removed ${result.data.products} demo products`,
+                  );
                   router.refresh();
                 } else toast("danger", result.error);
               }}
@@ -705,6 +729,32 @@ export function DemoPanel({
         </div>
       ) : (
         <div className={styles.stack4}>
+          {demoSettingsHits.length > 0 && (
+            <Notice
+              tone="warning"
+              title="Halden demo settings are still active"
+              action={
+                <ConfirmButton
+                  variant="outline"
+                  size="sm"
+                  title="Clear remaining Halden demo settings?"
+                  description="Resets only untouched Halden sample fields (store name, demo email, demo bank note, sample hero/banners, and demo pages) back to clean Detail Corner defaults. Any details you customized stay intact."
+                  confirmLabel="Clean demo settings"
+                  onConfirm={async () => {
+                    const result = await cleanDemoSettingsAction();
+                    if (result.ok) {
+                      toast("success", `Cleaned ${result.data.cleanedFields} demo setting(s)`);
+                      router.refresh();
+                    } else toast("danger", result.error);
+                  }}
+                >
+                  Clean demo settings
+                </ConfirmButton>
+              }
+            >
+              Leftover sample fields: {demoSettingsHits.join(", ")}. Replace or clean them before launching live.
+            </Notice>
+          )}
           <p className={styles.mutedText}>
             No demo content in your shop. You can bring the sample products back — useful for trying a theme before your own
             photos are ready.

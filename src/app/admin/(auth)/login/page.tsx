@@ -42,10 +42,10 @@ export default async function LoginPage() {
             {state.reason}
           </Notice>
           <p className={styles.authHint}>
-            Connect your Supabase database by running your SQL schema in the Supabase SQL Editor and adding the
-            required environment keys (<code className={styles.inlineCode}>NEXT_PUBLIC_SUPABASE_URL</code>,{" "}
-            <code className={styles.inlineCode}>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>, and{" "}
-            <code className={styles.inlineCode}>SUPABASE_SERVICE_ROLE_KEY</code>) in your host environment settings,
+            Connect your Supabase database by running the SQL migrations in <code className={styles.inlineCode}>supabase/migrations/</code>{" "}
+            and adding the required server environment variables (<code className={styles.inlineCode}>SUPABASE_URL</code>,{" "}
+            <code className={styles.inlineCode}>SUPABASE_PUBLISHABLE_KEY</code>, and{" "}
+            <code className={styles.inlineCode}>SUPABASE_SECRET_KEY</code>) in your host environment settings,
             then redeploy or restart the app.
           </p>
         </div>

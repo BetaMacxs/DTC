@@ -5,7 +5,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { WhatsAppIcon } from "@/components/icons/brands";
 import styles from "@/components/admin/admin.module.css";
-import { DeleteOrderButton, InternalNote, OrderStatusActions, PaymentStatusControl } from "@/components/admin/OrderActions";
+import { AnonymizeOrderButton, DeleteOrderButton, InternalNote, OrderStatusActions, PaymentStatusControl } from "@/components/admin/OrderActions";
 import { ChannelBadge, formatDateTime, OrderStatusPill, PaymentPill } from "@/components/admin/OrderBits";
 import { Notice, PageHeader, Panel } from "@/components/admin/ui";
 import { formatMoney, includedVatAmount } from "@/lib/domain/money";
@@ -228,6 +228,7 @@ export default async function OrderDetailPage({ params }: Props) {
           </Panel>
 
           <div className={styles.flexEnd}>
+            <AnonymizeOrderButton order={order} />
             <DeleteOrderButton order={order} />
           </div>
         </div>

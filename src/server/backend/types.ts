@@ -98,6 +98,7 @@ export interface AdminApi {
     id: string,
     patch: { paymentStatus?: PaymentStatus; internalNote?: string },
   ): Promise<Order>;
+  anonymizeOrder(id: string): Promise<Order>;
   deleteOrder(id: string): Promise<void>;
 
   uploadMedia(file: MediaUpload): Promise<{ url: string }>;

@@ -10,6 +10,7 @@ import { buttonClass } from "@/components/ui/button";
 import { formatMoney, type MoneyFormat } from "@/lib/domain/money";
 import { orderMetrics } from "@/lib/domain/orders";
 import { stockIssue } from "@/lib/domain/product";
+import { detectDemoSettings } from "@/lib/demo/seed";
 import { DEFAULT_SETTINGS, isWhatsAppConfigured } from "@/lib/domain/settings";
 import { requireAdmin } from "@/server/admin";
 
@@ -38,6 +39,7 @@ export default async function OverviewPage() {
   const low = active.filter((product) => stockIssue(product) === "low");
   const demoProducts = catalog.products.filter((product) => product.isDemo).length;
   const ownProducts = catalog.products.length - demoProducts;
+  const demoSettingsHits = detectDemoSettings(settings);
 
   const checklist = [
     { done: settings.store.name !== DEFAULT_SETTINGS.store.name, label: "Name your store and add a logo", href: "/admin/settings#store" },
@@ -112,6 +114,22 @@ export default async function OverviewPage() {
           >
             They&apos;re here so the shop looks complete while you set up. Remove them all in one click once your own
             products are in.
+          </Notice>
+        </div>
+      )}
+
+      {demoProducts === 0 && demoSettingsHits.length > 0 && (
+        <div className={styles.mb6}>
+          <Notice
+            tone="warning"
+            title="Halden demo settings are still visible on your storefront"
+            action={
+              <Link href="/admin/settings#demo" className={styles.textLink}>
+                Clean demo settings
+              </Link>
+            }
+          >
+            Detected: {demoSettingsHits.join(", ")}. Clear them before going live.
           </Notice>
         </div>
       )}

@@ -32,9 +32,21 @@ export type SupabaseConfig = {
   secretKey: string | null;
 };
 
+const SUPABASE_ENV_KEYS = [
+  "SUPABASE_URL",
+  "SUPABASE_PUBLISHABLE_KEY",
+  "SUPABASE_ANON_KEY",
+  "SUPABASE_SECRET_KEY",
+  "SUPABASE_SERVICE_ROLE_KEY",
+] as const;
+
 function read(name: string): string | undefined {
   const value = process.env[name]?.trim();
   return value ? value : undefined;
+}
+
+export function hasSupabaseEnv(): boolean {
+  return SUPABASE_ENV_KEYS.some((name) => Boolean(read(name)));
 }
 
 export function supabaseConfig(): SupabaseConfig | null {
@@ -51,7 +63,7 @@ export function supabaseConfig(): SupabaseConfig | null {
 export function backendKind(): BackendKind {
   const explicit = read("STORE_BACKEND");
   if (explicit === "local" || explicit === "supabase") return explicit;
-  return "local";
+  return hasSupabaseEnv() ? "supabase" : "local";
 }
 
 /**
@@ -59,7 +71,21 @@ export function backendKind(): BackendKind {
  * configured would otherwise run on local files that the next deploy wipes.
  */
 export function backendProblem(): string | null {
-  if (isProduction() && backendKind() === "local" && read("STORE_BACKEND") !== "local") {
+  const explicit = read("STORE_BACKEND");
+  if (explicit && explicit !== "local" && explicit !== "supabase") {
+    return `Invalid STORE_BACKEND "${explicit}". Use "supabase" or "local".`;
+  }
+  if (backendKind() === "supabase") {
+    const config = supabaseConfig();
+    if (!config) {
+      return "Supabase is partially configured. Set both SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY (or SUPABASE_ANON_KEY) in the server's environment variables.";
+    }
+    if (isProduction() && !config.secretKey) {
+      return "SUPABASE_SECRET_KEY (or SUPABASE_SERVICE_ROLE_KEY) is required in production so checkout orders can be saved securely.";
+    }
+    return null;
+  }
+  if (isProduction() && explicit !== "local") {
     return "No database is configured. Set SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY and SUPABASE_SECRET_KEY in the server's environment variables — or STORE_BACKEND=local to use the local file store on purpose.";
   }
   return null;

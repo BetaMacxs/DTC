@@ -14,7 +14,7 @@ import {
   stockIssue,
   variantLabel,
 } from "./product";
-import { DEFAULT_SETTINGS, isSafeHref, parseSettings, settingsSchema } from "./settings";
+import { DEFAULT_SETTINGS, imageUrlSchema, isSafeHref, parseSettings, settingsSchema } from "./settings";
 import { slugify, uniqueSlug } from "./slug";
 import { combinations, optionProblems, renameOptionValue, syncVariants } from "./variants";
 
@@ -117,6 +117,11 @@ describe("settings", () => {
     expect(isSafeHref("javascript:alert(1)")).toBe(false);
     expect(isSafeHref("//evil.example")).toBe(false);
     expect(settingsSchema.safeParse({ homepage: { hero: { primaryHref: "javascript:x" } } }).success).toBe(false);
+    expect(imageUrlSchema.safeParse("/uploads/a.webp").success).toBe(true);
+    expect(imageUrlSchema.safeParse("https://cdn.example/a.webp").success).toBe(true);
+    expect(imageUrlSchema.safeParse("//evil.example/a.webp").success).toBe(false);
+    expect(imageUrlSchema.safeParse("javascript:alert(1)").success).toBe(false);
+    expect(imageUrlSchema.safeParse("http://insecure.example/a.webp").success).toBe(false);
   });
 });
 
