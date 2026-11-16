@@ -1,8 +1,51 @@
 import { describe, expect, it } from "vitest";
 import { product } from "./fixtures.test-utils";
-import { checkoutErrors, checkoutSchema } from "./checkout";
+import { checkoutErrors, checkoutSchema, productionCheckoutProblem } from "./checkout";
 import { quoteCart } from "./cart";
 import { parseSettings } from "./settings";
+
+describe("live store readiness", () => {
+  it("rejects untouched starter settings", () => {
+    expect(productionCheckoutProblem(parseSettings({}))).toBe("store_name");
+  });
+
+  it("requires a real customer contact and configured delivery option", () => {
+    const noContact = parseSettings({ store: { name: "Detail Corner" } });
+    expect(productionCheckoutProblem(noContact)).toBe("contact");
+
+    const noShipping = parseSettings({
+      store: { name: "Detail Corner" },
+      contact: { email: "hello@detailcorner.co.za" },
+      shipping: {
+        methods: [{
+          id: "delivery",
+          name: "Delivery",
+          description: "We'll confirm the delivery cost and timing.",
+          price: 0,
+          requiresAddress: true,
+        }],
+      },
+    });
+    expect(productionCheckoutProblem(noShipping)).toBe("shipping");
+  });
+
+  it("accepts a named store with real contact details and an explicit delivery method", () => {
+    const configured = parseSettings({
+      store: { name: "Detail Corner" },
+      contact: { email: "hello@detailcorner.co.za" },
+      shipping: {
+        methods: [{
+          id: "free-delivery",
+          name: "Free delivery",
+          description: "Complimentary delivery across the service area",
+          price: 0,
+          requiresAddress: true,
+        }],
+      },
+    });
+    expect(productionCheckoutProblem(configured)).toBeNull();
+  });
+});
 
 describe("checkout configuration safeguards", () => {
   const settings = (instructions: string) =>
