@@ -5,7 +5,28 @@ vi.mock("server-only", () => ({}));
 const { headersMock } = vi.hoisted(() => ({ headersMock: vi.fn() }));
 vi.mock("next/headers", () => ({ headers: headersMock }));
 
-import { clientAddress } from "./request";
+import { parseSettings } from "@/lib/domain/settings";
+import { clientAddress, siteOrigin } from "./request";
+
+describe("siteOrigin", () => {
+  it("uses the request host and ignores untrusted forwarded host/protocol values", async () => {
+    headersMock.mockResolvedValue(
+      new Headers({ host: "shop.example.com", "x-forwarded-host": "attacker.example", "x-forwarded-proto": "http" }),
+    );
+    await expect(siteOrigin(parseSettings({}))).resolves.toBe("https://shop.example.com");
+  });
+
+  it("keeps localhost on HTTP and honours an explicitly configured canonical URL", async () => {
+    headersMock.mockResolvedValue(new Headers({ host: "localhost:3000" }));
+    await expect(siteOrigin(parseSettings({}))).resolves.toBe("http://localhost:3000");
+    await expect(siteOrigin(parseSettings({ store: { siteUrl: "https://canonical.example/" } }))).resolves.toBe("https://canonical.example");
+  });
+
+  it("rejects malformed host values", async () => {
+    headersMock.mockResolvedValue(new Headers({ host: "attacker.example/path" }));
+    await expect(siteOrigin(parseSettings({}))).resolves.toBe("https://localhost");
+  });
+});
 
 describe("clientAddress", () => {
   beforeEach(() => headersMock.mockReset());
