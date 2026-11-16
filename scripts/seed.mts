@@ -133,7 +133,7 @@ async function initDetailCorner() {
     .from("store_settings")
     .upsert({ id: 1, data: starter }, { onConflict: "id" });
   if (writeError) fail(`Could not write Detail Corner starter settings: ${writeError.message}`);
-  console.log("✓ Detail Corner starter settings saved (ZAR currency, Obsidian & Crimson theme).");
+  console.log("✓ Detail Corner starter settings saved (ZAR currency, Crimson accent and signage typography).");
   console.log("  Still configure in /admin/settings: contact email/WhatsApp, shipping rates, bank details, VAT (if registered), hero photo & policies.");
 }
 
