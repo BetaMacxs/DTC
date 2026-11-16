@@ -12,7 +12,7 @@ import {
 } from "@/lib/domain/checkout";
 import { isWhatsAppConfigured } from "@/lib/domain/settings";
 import { getBackend } from "@/server/backend";
-import { randomToken, sha256 } from "@/server/crypto";
+import { sha256 } from "@/server/crypto";
 import { checkFormToken } from "@/server/form-token";
 import { rateLimit } from "@/server/rate-limit";
 import { clientAddress } from "@/server/request";
@@ -82,8 +82,9 @@ export async function placeOrderAction(raw: Record<string, unknown>): Promise<Pl
     return { ok: false, errors: {}, message: "failed" };
   }
 
+  const checkoutToken = typeof raw.formToken === "string" ? raw.formToken : "";
   try {
-    if (!(await checkFormToken(raw.formToken))) {
+    if (!(await checkFormToken(checkoutToken))) {
       return { ok: false, errors: {}, message: "failed" };
     }
   } catch (error) {
@@ -126,7 +127,9 @@ export async function placeOrderAction(raw: Record<string, unknown>): Promise<Pl
     whatsappConfigured: isWhatsAppConfigured(settings),
   });
 
-  const token = randomToken();
+  // The signed, per-render checkout token doubles as the idempotency key
+  // and private order-access token. The database enforces its uniqueness.
+  const token = checkoutToken;
   try {
     const created = await getBackend().public.createOrder(order, sha256(token));
     return { ok: true, orderUrl: `/orders/${created.id}?key=${token}` };
