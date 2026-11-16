@@ -44,10 +44,14 @@ async function check(label, run) {
   }
 }
 
-/** A request that must be refused: an error, or no rows touched. */
+/** Only an actual permission/RLS denial counts as a successful refusal check. */
+const isPermissionDenied = (error) =>
+  error?.code === "42501" || /row-level security|permission denied|not authorized|not allowed/i.test(error?.message ?? "");
+
+/** A request that must be refused: a permission denial, or no rows touched. */
 const refused = async (request) => {
   const { data, error, count } = await request;
-  if (error) return true;
+  if (error) return isPermissionDenied(error) ? true : `unexpected request error: ${error.message}`;
   return (Array.isArray(data) && data.length > 0) || (count ?? 0) > 0 ? "allowed" : true;
 };
 
@@ -95,6 +99,27 @@ await check("the settings row exists", async () => {
   if (error) return error.message;
   if (!data) return "no settings row — apply the database migrations first";
   settingsData = data.data;
+  return true;
+});
+
+await check("create a disposable order for read-permission checks", async () => {
+  const { data, error } = await service
+    .from("orders")
+    .insert({
+      channel: "web",
+      status: "received",
+      payment_method: "cod",
+      currency: "ZAR",
+      items: [{ name: "Security check item", quantity: 1, unitPrice: 1, lineTotal: 1 }],
+      subtotal: 1,
+      total: 1,
+      customer: { name: "Security check", phone: "", email: "" },
+      access_token_hash: randomBytes(32).toString("hex"),
+    })
+    .select("id")
+    .single();
+  if (error) return error.message;
+  temporary.orderIds.push(data.id);
   return true;
 });
 
@@ -152,7 +177,7 @@ await check("shoppers can't add categories", async () => {
     .insert({ slug: `security-check-${suffix}`, name: "Security check" })
     .select("id")
     .maybeSingle();
-  if (error) return true;
+  if (error) return isPermissionDenied(error) ? true : error.message;
   if (data?.id) {
     temporary.categoryIds.push(data.id);
     return "allowed";
@@ -176,7 +201,7 @@ await check("shoppers can't create orders directly", async () => {
     })
     .select("id")
     .maybeSingle();
-  if (error) return true;
+  if (error) return isPermissionDenied(error) ? true : error.message;
   if (data?.id) {
     temporary.orderIds.push(data.id);
     return "allowed";
@@ -190,7 +215,7 @@ if (mediaBucketReady) {
     const { data, error } = await shopper.storage
       .from("store-media")
       .upload(path, new Uint8Array([1]), { contentType: "image/png" });
-    if (error) return true;
+    if (error) return isPermissionDenied(error) ? true : error.message;
     temporary.storagePaths.push(data.path ?? path);
     return "allowed";
   });
@@ -203,7 +228,7 @@ await check("shoppers can't make themselves admin", async () => {
   if (created.error) return created.error.message;
   temporary.userIds.push(created.data.user.id);
   const { error } = await shopper.rpc("grant_admin", { p_email: email });
-  return error ? true : "allowed";
+  return error && isPermissionDenied(error) ? true : error ? error.message : "allowed";
 });
 
 await check("public sign-ups are off", async () => {
@@ -213,7 +238,10 @@ await check("public sign-ups are off", async () => {
     password: randomBytes(18).toString("base64url"),
   });
   if (data.user?.id) temporary.userIds.push(data.user.id);
-  return error ? true : "anyone can create an account (turn off public sign-ups in Supabase Auth)";
+  if (!error) return "anyone can create an account (turn off public sign-ups in Supabase Auth)";
+  return error.code === "signup_disabled" || /sign.?ups? (are )?(not allowed|disabled)|signups not allowed/i.test(error.message)
+    ? true
+    : error.message;
 });
 
 /* ------------------------------------------- what a signed-in stranger can do */
@@ -265,7 +293,7 @@ if (created.error) {
         const { data, error } = await stranger.storage
           .from("store-media")
           .upload(path, new Uint8Array([1]), { contentType: "image/png" });
-        if (error) return true;
+        if (error) return isPermissionDenied(error) ? true : error.message;
         temporary.storagePaths.push(data.path ?? path);
         return "allowed";
       });
@@ -276,7 +304,7 @@ if (created.error) {
     });
     await check("signed-in non-admins can't grant admin access", async () => {
       const { error } = await stranger.rpc("grant_admin", { p_email: strangerEmail });
-      return error ? true : "allowed";
+      return error && isPermissionDenied(error) ? true : error ? error.message : "allowed";
     });
   }
 }
