@@ -190,7 +190,7 @@ begin
   if exists (
     select 1
       from public.orders o
-     where o.status in ('received', 'confirmed', 'fulfilled')
+     where o.status in ('prepared', 'opened', 'received', 'confirmed', 'fulfilled')
        and exists (
          select 1
            from jsonb_array_elements(o.items) as item
