@@ -431,6 +431,12 @@ function authApi(config: SupabaseConfig): AuthApi {
   }
 
   return {
+    async currentUser() {
+      const { data, error } = await (await sessionClient(config)).auth.getUser();
+      if (error || !data.user) return null;
+      return { id: data.user.id, email: data.user.email ?? "" };
+    },
+
     async currentAdmin() {
       return adminFrom(await sessionClient(config));
     },
