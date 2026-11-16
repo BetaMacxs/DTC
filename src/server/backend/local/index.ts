@@ -194,6 +194,14 @@ function adminApi(user: AdminUser): AdminApi {
 
     async deleteProduct(id) {
       await updateData((data) => {
+        const referencedByOpenOrder = data.orders.some(
+          (order) =>
+            ["received", "confirmed", "fulfilled"].includes(order.status) &&
+            order.items.some((item) => item.productId === id),
+        );
+        if (referencedByOpenOrder) {
+          throw new ConflictError("This product is part of an open order. Archive it instead.");
+        }
         data.products = data.products.filter((product) => product.id !== id);
       });
     },
