@@ -177,6 +177,11 @@ $$;
 revoke all on function public.admin_transition_order(uuid, text, text, integer, text) from public, anon;
 grant execute on function public.admin_transition_order(uuid, text, text, integer, text) to authenticated;
 
+-- The signed checkout token is also the idempotency key. A unique index makes
+-- retries safe even if the browser resubmits after a network timeout.
+create unique index if not exists orders_access_token_hash_uidx
+  on public.orders (access_token_hash);
+
 -- A product must remain available while an order that references it is still
 -- awaiting fulfilment. Archiving is safe; hard deletion would make the order
 -- impossible to confirm or fulfil and could strand inventory.
