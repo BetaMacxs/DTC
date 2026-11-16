@@ -5,11 +5,18 @@ import { serviceClient } from "@/server/backend/supabase/clients";
 /**
  * Fixed-window rate limiter.
  *
- * When running on Supabase with `SUPABASE_SECRET_KEY`, windows are tracked in
- * Postgres (`public.check_rate_limit`) so Vercel serverless instances share the
- * same counters without an external paid store. In local mode (or if the RPC
- * is unavailable), falls back cleanly to an in-memory fixed window.
+ * Supabase-backed deployments must use the shared Postgres counter. If that
+ * protection is unavailable, this throws rather than silently weakening
+ * protection to per-instance memory (which is bypassable on serverless hosts).
+ * In-memory limits are reserved for the explicitly local backend.
  */
+
+export class RateLimitUnavailableError extends Error {
+  constructor() {
+    super("Shared rate limiting is unavailable.");
+    this.name = "RateLimitUnavailableError";
+  }
+}
 
 type Window = { count: number; resetAt: number };
 const globalKey = Symbol.for("storefront.rateLimits");
@@ -38,27 +45,37 @@ export async function rateLimit(
   limit: number,
   windowMs: number,
 ): Promise<{ ok: boolean; retryAfterMs: number }> {
-  if (backendKind() === "supabase") {
-    const config = supabaseConfig();
-    if (config?.secretKey) {
-      try {
-        const { data, error } = await serviceClient(config).rpc("check_rate_limit", {
-          p_key: key,
-          p_limit: limit,
-          p_window_ms: windowMs,
-        });
-        const row = Array.isArray(data) ? data[0] : data;
-        if (!error && row && typeof row.allowed === "boolean") {
-          return { ok: row.allowed, retryAfterMs: Number(row.retry_after_ms ?? 0) };
-        }
-        if (error) {
-          console.error("[rate-limit] Supabase RPC returned error, falling back to local memory limit:", error.message);
-        }
-      } catch (error) {
-        console.error("[rate-limit] Supabase RPC execution threw exception, falling back to local memory limit:", error);
-      }
-    }
+  if (backendKind() !== "supabase") {
+    return rateLimitInMemory(key, limit, windowMs);
   }
-  return rateLimitInMemory(key, limit, windowMs);
+
+  const config = supabaseConfig();
+  if (!config?.secretKey) {
+    console.error("[rate-limit] Supabase backend is missing its server secret key.");
+    throw new RateLimitUnavailableError();
+  }
+
+  try {
+    const { data, error } = await serviceClient(config).rpc("check_rate_limit", {
+      p_key: key,
+      p_limit: limit,
+      p_window_ms: windowMs,
+    });
+    const row = Array.isArray(data) ? data[0] : data;
+    if (error || !row || typeof row.allowed !== "boolean") {
+      console.error("[rate-limit] Shared Supabase rate-limit RPC failed:", error?.message ?? "Invalid RPC response");
+      throw new RateLimitUnavailableError();
+    }
+    const retryAfterMs = Number(row.retry_after_ms ?? 0);
+    if (!Number.isFinite(retryAfterMs) || retryAfterMs < 0) {
+      console.error("[rate-limit] Shared Supabase rate-limit RPC returned an invalid retry interval.");
+      throw new RateLimitUnavailableError();
+    }
+    return { ok: row.allowed, retryAfterMs };
+  } catch (error) {
+    if (error instanceof RateLimitUnavailableError) throw error;
+    console.error("[rate-limit] Shared Supabase rate-limit RPC threw an exception:", error);
+    throw new RateLimitUnavailableError();
+  }
 }
 
