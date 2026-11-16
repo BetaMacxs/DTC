@@ -1,6 +1,7 @@
 import "server-only";
 import { backendKind, supabaseConfig } from "@/server/env";
 import { serviceClient } from "@/server/backend/supabase/clients";
+import { sha256 } from "@/server/crypto";
 
 /**
  * Fixed-window rate limiter.
@@ -45,8 +46,18 @@ export async function rateLimit(
   limit: number,
   windowMs: number,
 ): Promise<{ ok: boolean; retryAfterMs: number }> {
+  if (!Number.isInteger(limit) || limit < 1 || !Number.isInteger(windowMs) || windowMs < 1) {
+    throw new RangeError("Rate-limit limit and window must be positive integers.");
+  }
+
+  const storageKey = sha256(key);
   if (backendKind() !== "supabase") {
-    return rateLimitInMemory(key, limit, windowMs);
+    return rateLimitInMemory(storageKey, limit, windowMs);
+  }
+
+  if (key.endsWith(":unknown")) {
+    console.error("[rate-limit] No trusted client address was available.");
+    throw new RateLimitUnavailableError();
   }
 
   const config = supabaseConfig();
@@ -57,7 +68,7 @@ export async function rateLimit(
 
   try {
     const { data, error } = await serviceClient(config).rpc("check_rate_limit", {
-      p_key: key,
+      p_key: storageKey,
       p_limit: limit,
       p_window_ms: windowMs,
     });
