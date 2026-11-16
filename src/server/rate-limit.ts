@@ -1,7 +1,7 @@
 import "server-only";
 import { backendKind, supabaseConfig } from "@/server/env";
 import { serviceClient } from "@/server/backend/supabase/clients";
-import { sha256 } from "@/server/crypto";
+import { sha256, sign } from "@/server/crypto";
 
 /**
  * Fixed-window rate limiter.
@@ -50,9 +50,8 @@ export async function rateLimit(
     throw new RangeError("Rate-limit limit and window must be positive integers.");
   }
 
-  const storageKey = sha256(key);
   if (backendKind() !== "supabase") {
-    return rateLimitInMemory(storageKey, limit, windowMs);
+    return rateLimitInMemory(sha256(key), limit, windowMs);
   }
 
   if (key.endsWith(":unknown")) {
@@ -65,6 +64,11 @@ export async function rateLimit(
     console.error("[rate-limit] Supabase backend is missing its server secret key.");
     throw new RateLimitUnavailableError();
   }
+
+  // A plain SHA-256 hash of an IP is reversible by enumerating the small IP
+  // address space. Use a keyed HMAC so stored identifiers cannot be recovered
+  // without the server-side secret.
+  const storageKey = sign(key, config.secretKey);
 
   try {
     const { data, error } = await serviceClient(config).rpc("check_rate_limit", {
