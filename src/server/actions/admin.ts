@@ -76,6 +76,7 @@ const credentialsSchema = z.object({
 });
 
 export async function signInAction(_previous: unknown, form: FormData): Promise<{ error?: string }> {
+  if (!(form instanceof FormData)) return { error: "Enter your email and password." };
   const parsed = credentialsSchema.safeParse({ email: form.get("email"), password: form.get("password") });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
 
@@ -88,16 +89,21 @@ export async function signInAction(_previous: unknown, form: FormData): Promise<
   }
   if (!limit.ok) return { error: "Too many attempts. Wait a few minutes and try again." };
 
-  const result = await getBackend().auth.signIn(parsed.data.email, parsed.data.password);
-  if (!result.ok) {
-    return {
-      error:
-        result.reason === "not-admin"
-          ? "This account doesn't have access to the dashboard."
-          : result.reason === "unavailable"
-            ? "The sign-in service is not reachable right now. Try again shortly."
-            : "That email and password don't match.",
-    };
+  try {
+    const result = await getBackend().auth.signIn(parsed.data.email, parsed.data.password);
+    if (!result.ok) {
+      return {
+        error:
+          result.reason === "not-admin"
+            ? "This account doesn't have access to the dashboard."
+            : result.reason === "unavailable"
+              ? "The sign-in service is not reachable right now. Try again shortly."
+              : "That email and password don't match.",
+      };
+    }
+  } catch (error) {
+    console.error("[auth] sign-in service failed:", error);
+    return { error: "The sign-in service is not reachable right now. Try again shortly." };
   }
   redirect("/admin");
 }
@@ -131,6 +137,7 @@ const ownerSchema = z
   .refine((value) => value.password === value.confirm, { message: "The passwords don't match", path: ["confirm"] });
 
 export async function createOwnerAction(_previous: unknown, form: FormData): Promise<{ error?: string }> {
+  if (!(form instanceof FormData)) return { error: "Enter your account details." };
   try {
     const limit = await rateLimit(`owner-setup:${await clientAddress()}`, 5, 15 * 60 * 1000);
     if (!limit.ok) return { error: "Too many setup attempts. Wait a few minutes and try again." };
@@ -167,6 +174,7 @@ export async function createOwnerAction(_previous: unknown, form: FormData): Pro
 }
 
 export async function changePasswordAction(_previous: unknown, form: FormData): Promise<{ error?: string; ok?: boolean }> {
+  if (!(form instanceof FormData)) return { error: "Enter your current and new passwords." };
   const parsed = z
     .object({
       current: z.string().min(1, "Enter your current password"),
@@ -469,6 +477,8 @@ export async function saveSettingsAction<K extends SettingsSection>(
 /* ---------------------------------------------------------- demo content */
 
 export async function loadDemoAction(options: { includeSettings: boolean }): Promise<ActionResult<{ products: number }>> {
+  const parsedOptions = z.object({ includeSettings: z.boolean() }).safeParse(options);
+  if (!parsedOptions.success) return { ok: false, error: "Invalid demo content options." };
   if (backendKind() === "supabase" && isProduction() && !publicDemoMode() && process.env.ALLOW_DEMO_SEED !== "true") {
     return {
       ok: false,
@@ -495,7 +505,7 @@ export async function loadDemoAction(options: { includeSettings: boolean }): Pro
       products: rename(demo.products, catalog.products),
     });
 
-    if (options.includeSettings) {
+    if (parsedOptions.data.includeSettings) {
       const current = await admin.loadSettings();
       const sample = demoSettings();
       await admin.saveSettings({
@@ -516,11 +526,13 @@ export async function loadDemoAction(options: { includeSettings: boolean }): Pro
 export async function removeDemoAction(
   options: { cleanSettings?: boolean } = {},
 ): Promise<ActionResult<{ products: number; categories: number; collections: number; settingsCleaned: number }>> {
+  const parsedOptions = z.object({ cleanSettings: z.boolean().optional() }).safeParse(options);
+  if (!parsedOptions.success) return { ok: false, error: "Invalid demo removal options." };
   try {
     const admin = await adminOrThrow();
     const removed = await admin.removeDemoContent();
     let settingsCleaned = 0;
-    if (options.cleanSettings) {
+    if (parsedOptions.data.cleanSettings) {
       const current = await admin.loadSettings();
       const cleaned = stripDemoSettings(current);
       if (cleaned.cleanedFields.length > 0) {
