@@ -75,6 +75,12 @@ describe("local backend production-safety parity", () => {
       note: "Spoke to the customer at their home number",
     });
     expect(confirmed.stockReserved).toBe(true);
+    await expect(
+      admin.writeProduct({ ...product, variants: product.variants.filter((item) => item.id !== variant.id) }, null),
+    ).rejects.toThrow(/cannot be removed while it is referenced by an open order/i);
+    await expect(
+      admin.writeProduct({ ...product, trackInventory: false }, null),
+    ).rejects.toThrow(/inventory tracking cannot be changed while this product is referenced by an open order/i);
     const afterReserve = await admin.loadCatalog();
     expect(afterReserve.products.find((item) => item.id === product.id)?.variants[0].stock).toBe(3);
 
