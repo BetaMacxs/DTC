@@ -12,7 +12,7 @@ All settings are read in one place: [`src/server/env.ts`](../src/server/env.ts).
 
 | Name | Default | When to set it |
 | --- | --- | --- |
-| `SUPABASE_ANON_KEY` | — | The older name for `SUPABASE_PUBLISHABLE_KEY`; either works. Hostinger's Supabase database wizard sets this one (with `SUPABASE_URL`), so with that wizard you only add `SUPABASE_SECRET_KEY` yourself. |
+| `SUPABASE_ANON_KEY` | — | The older name for `SUPABASE_PUBLISHABLE_KEY`; either works. Legacy integrations may still provide this name; prefer `SUPABASE_PUBLISHABLE_KEY` for new deployments. |
 | `SUPABASE_SERVICE_ROLE_KEY` | — | The older name for `SUPABASE_SECRET_KEY`; either works. |
 | `SESSION_SECRET` | built in | A fixed secret (32+ random characters) for signing checkout forms and local dashboard sessions. Without it, one is derived from the Supabase secret key — or, on the local store, created in its data folder. Changing it invalidates open checkout forms and signs local dashboard users out. |
 | `CATALOG_CACHE_SECONDS` | `30` | How long each server reuses the loaded catalog. Saving in the dashboard refreshes it immediately on that server; `0` always reads fresh (the tests use this). |
