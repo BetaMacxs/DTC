@@ -141,9 +141,60 @@ async function seed() {
     existing(supabase, "products"),
   ]);
 
-  const groupingRow = (item: Grouping) => ({ ...fromGrouping(item), created_at: item.createdAt });
+  const storageBase = `${url}/storage/v1/object/public/products`;
+  const bucketFiles = new Set<string>();
+  const { data: rootFiles } = await supabase.storage.from("products").list("", { limit: 1000 });
+  for (const file of rootFiles ?? []) {
+    if (file.name) bucketFiles.add(file.name);
+  }
+  for (const folder of ["categories", "banners"]) {
+    const { data: folderFiles } = await supabase.storage.from("products").list(folder, { limit: 100 });
+    for (const file of folderFiles ?? []) {
+      if (file.name) bucketFiles.add(`${folder}/${file.name}`);
+    }
+  }
+
+  const resolveGroupingUrl = (imageUrl: string | null) => {
+    if (!imageUrl) return imageUrl;
+    if (imageUrl.startsWith("/demo/categories/")) {
+      const rel = imageUrl.replace("/demo/", "");
+      if (bucketFiles.has(rel)) return `${storageBase}/${rel}`;
+    }
+    if (imageUrl.startsWith("/demo/banners/")) {
+      const rel = imageUrl.replace("/demo/", "");
+      if (bucketFiles.has(rel)) return `${storageBase}/${rel}`;
+    }
+    return imageUrl;
+  };
+
+  const resolveProductUrl = (item: Product, defaultUrl: string) => {
+    const sku = item.variants[0]?.sku;
+    const candidates = [
+      ...(sku ? [`${sku}.png`, `${sku}.jpg`, `${sku}.webp`] : []),
+      `${item.slug}.png`,
+      `${item.slug}.jpg`,
+      `${item.slug}.webp`,
+    ];
+    for (const file of candidates) {
+      if (bucketFiles.has(file)) return `${storageBase}/${file}`;
+    }
+    return defaultUrl;
+  };
+
+  const groupingRow = (item: Grouping) => ({
+    ...fromGrouping(item),
+    image_url: resolveGroupingUrl(item.imageUrl),
+    created_at: item.createdAt,
+  });
   // Keep each product's age, so "New" badges and "newest first" look right.
-  const productRow = (item: Product) => ({ ...fromProduct(item), created_at: item.createdAt });
+  const productRow = (item: Product) => {
+    const row = fromProduct(item);
+    const images = (item.images ?? []).map((img) => ({
+      ...img,
+      url: resolveProductUrl(item, img.url),
+    }));
+    return { ...row, images, created_at: item.createdAt };
+  };
 
   const plannedCategories = plan(demo.categories, categories);
   const plannedCollections = plan(demo.collections, collections);

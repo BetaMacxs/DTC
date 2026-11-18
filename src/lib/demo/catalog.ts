@@ -82,7 +82,11 @@ const COLLECTION_DEFS = [
 export type DemoCategorySlug = (typeof CATEGORY_DEFS)[number]["slug"];
 export type DemoCollectionSlug = (typeof COLLECTION_DEFS)[number]["slug"];
 
-const daysAgo = (now: Date, days: number) => new Date(now.getTime() - days * 86_400_000).toISOString();
+const daysAgo = (now: Date | string | undefined | null, days: number) => {
+  const base = now instanceof Date ? now : (typeof now === 'string' ? new Date(now) : new Date());
+  const validBase = !isNaN(base.getTime()) ? base : new Date();
+  return new Date(validBase.getTime() - days * 86_400_000).toISOString();
+};
 
 export function demoCategories(now: Date): Category[] {
   return CATEGORY_DEFS.map((def, index) => ({

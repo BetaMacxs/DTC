@@ -24,7 +24,7 @@ const publicDir = path.join(process.cwd(), "public");
 
 describe("demo catalog", () => {
   it("has a believable store's worth of automotive detailing products across 7 categories", () => {
-    expect(catalog.products).toHaveLength(12);
+    expect(catalog.products).toHaveLength(44);
     expect(catalog.categories).toHaveLength(7);
     for (const category of catalog.categories) {
       expect(catalog.products.filter((product) => product.categoryId === category.id).length).toBeGreaterThanOrEqual(1);
