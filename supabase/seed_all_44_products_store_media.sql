@@ -1,3 +1,5 @@
+BEGIN;
+
 -- =============================================================================
 -- Detail Corner - Complete 44-Product Demo Seeder
 -- Supabase project: gllpmefitusfsuzrjgtf
@@ -1267,3 +1269,5 @@ CROSS JOIN LATERAL jsonb_array_elements(p.images)
 WHERE p.is_demo = true
   AND p.id::text LIKE 'de000000-0000-4000-8000-b%'
 ORDER BY p.slug, image_item.ordinality;
+
+COMMIT;
